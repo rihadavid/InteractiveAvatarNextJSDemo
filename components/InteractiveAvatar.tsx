@@ -144,13 +144,13 @@ export default function InteractiveAvatar() {
         accumulatedText += chunk;
 
         // Start speaking as soon as we have some text
-        if (!avatar.current.isSpeaking) {
+        //if (!avatar.current.isSpeaking) {
           avatar.current.speak({ text: accumulatedText });
-        }
+        //}
       }
 
       // If there's any remaining text, speak it
-      if (accumulatedText && !avatar.current.isSpeaking) {
+      if (accumulatedText/* && !avatar.current.isSpeaking*/) {
         avatar.current.speak({ text: accumulatedText });
       }
     } catch (e) {
