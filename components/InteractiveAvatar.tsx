@@ -45,6 +45,7 @@ export default function InteractiveAvatar() {
   const [isUserTalking, setIsUserTalking] = useState(false);
 
   const [customSessionId, setCustomSessionId] = useState<string | null>(null);
+  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
 
   // Use useEffect to access search params after component mount
   useEffect(() => {
@@ -82,6 +83,26 @@ export default function InteractiveAvatar() {
   async function startSession() {
     setIsLoadingSession(true);
     const newToken = await fetchAccessToken();
+
+    
+    const wsUrl = process.env.WSS_URL;
+    if (!wsUrl) {
+      console.error("WebSocket URL is not configured");
+      return;
+    }
+
+    const ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+      console.log("WebSocket connection established");
+      setWsConnection(ws);
+    };
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+    ws.onclose = () => {
+      console.log("WebSocket connection closed");
+      setWsConnection(null);
+    };
 
     avatar.current = new StreamingAvatar({
       token: newToken,
@@ -137,42 +158,34 @@ export default function InteractiveAvatar() {
       return;
     }
 
-
-      /*await avatar.current.speak({ text: text }).catch((e) => {
-          setDebug(e.message);
-      });
-      setIsLoadingRepeat(false);*/
-
     if (!customSessionId) {
       setDebug("Custom session ID not available");
       return;
     }
 
+    if (!wsConnection) {
+      setDebug("WebSocket connection not established");
+      return;
+    }
+
     try {
-      const response = await fetch('/api/lambda-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, custom_session_id: customSessionId }),
-      });
+      wsConnection.send(JSON.stringify({
+        action: 'MESSAGE',
+        message: text,
+        custom_session_id: customSessionId
+      }));
 
-      if (!response.body) {
-        throw new Error('No response body');
-      }
+      wsConnection.onmessage = async (event) => {
+        const chunk = event.data;
 
-      const reader = response.body.getReader();
+        if (chunk === '[END]') {
+          return;
+        }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = new TextDecoder().decode(value);
-
-        if (chunk === '[END]') break;
-
-        avatar.current.speak({ text: chunk, task_type: TaskType.REPEAT });
-      }
+        await avatar.current.speak({ text: chunk, task_type: TaskType.REPEAT });
+      };
     } catch (e) {
-        setDebug(e instanceof Error ? e.message : 'An unknown error occurred');
+      setDebug(e instanceof Error ? e.message : 'An unknown error occurred');
     } finally {
       setIsLoadingRepeat(false);
     }
@@ -192,6 +205,10 @@ export default function InteractiveAvatar() {
   async function endSession() {
     await avatar.current?.stopAvatar();
     setStream(undefined);
+    if (wsConnection) {
+      wsConnection.close();
+      setWsConnection(null);
+    }
   }
 
   const handleChangeChatMode = useMemoizedFn(async (v) => {
@@ -218,8 +235,11 @@ export default function InteractiveAvatar() {
   useEffect(() => {
     return () => {
       endSession();
+      if (wsConnection) {
+        wsConnection.close();
+      }
     };
-  }, []);
+  }, [wsConnection]);
 
   useEffect(() => {
     if (stream && mediaStream.current) {
