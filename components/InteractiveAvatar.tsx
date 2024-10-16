@@ -46,6 +46,7 @@ export default function InteractiveAvatar() {
   const avatar = useRef<StreamingAvatar | null>(null);
   const [chatMode, setChatMode] = useState("text_mode");
   const [isUserTalking, setIsUserTalking] = useState(false);
+    const [isAvatarTalking, setIsAvatarTalking] = useState(false);
 
   const [customSessionId, setCustomSessionId] = useState<string | null>(null);
     const [signature, setSignature] = useState<string | null>(null);
@@ -112,9 +113,11 @@ export default function InteractiveAvatar() {
     });
     avatar.current.on(StreamingEvents.AVATAR_START_TALKING, (e) => {
       console.log("Avatar started talking", e);
+      setIsAvatarTalking(true);
     });
     avatar.current.on(StreamingEvents.AVATAR_STOP_TALKING, (e) => {
       console.log("Avatar stopped talking", e);
+        setIsAvatarTalking(false);
     });
     avatar.current.on(StreamingEvents.STREAM_DISCONNECTED, () => {
       console.log("Stream disconnected");
@@ -124,9 +127,20 @@ export default function InteractiveAvatar() {
       console.log(">>>>> Stream ready:", event.detail);
       setStream(event.detail);
     });
-    avatar.current?.on(StreamingEvents.USER_START, (event) => {
+    avatar.current?.on(StreamingEvents.USER_START, async (event) => {
       console.log(">>>>> User started talking:", event);
-      setIsUserTalking(true);
+
+        setIsUserTalking(true);
+
+        if (isAvatarTalking) {
+            let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
+                method: 'GET',
+            }).catch(error => {
+                console.error('Error reporting interruption:', error);
+            });
+            setIsAvatarTalking(false);
+            await interruptTask;
+        }
     });
     avatar.current?.on(StreamingEvents.USER_STOP, (event) => {
       console.log(">>>>> User stopped talking:", event);
@@ -203,19 +217,12 @@ export default function InteractiveAvatar() {
 
       return;
     }
-      let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
-          method: 'GET',
-      }).catch(error => {
-          console.error('Error reporting interruption:', error);
-      });
 
     await avatar.current
       .interrupt()
       .catch((e) => {
         setDebug(e.message);
       });
-
-    await interruptTask;
   }
   async function endSession() {
     await avatar.current?.stopAvatar();
