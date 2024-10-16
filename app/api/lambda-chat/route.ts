@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 const wsUrl = process.env.WSS_URL;
 
 export async function POST(req: Request) {
+  if (!wsUrl) {
+    return new NextResponse('WebSocket URL is not configured', { status: 500 });
+  }
+
   const { message } = await req.json();
 
   // Create a ReadableStream from the generator function
