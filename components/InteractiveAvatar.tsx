@@ -136,7 +136,13 @@ export default function InteractiveAvatar() {
       setDebug("Avatar API not initialized");
       return;
     }
-    
+
+
+      /*await avatar.current.speak({ text: text }).catch((e) => {
+          setDebug(e.message);
+      });
+      setIsLoadingRepeat(false);*/
+
     if (!customSessionId) {
       setDebug("Custom session ID not available");
       return;
@@ -165,13 +171,13 @@ export default function InteractiveAvatar() {
 
         // Start speaking as soon as we have some text
         //if (!avatar.current.isSpeaking) {
-          avatar.current.speak({ text: accumulatedText });
+          avatar.current.speak({ text: accumulatedText, task_type: TaskType.REPEAT });
         //}
       }
 
       // If there's any remaining text, speak it
       if (accumulatedText/* && !avatar.current.isSpeaking*/) {
-        avatar.current.speak({ text: accumulatedText });
+        avatar.current.speak({ text: accumulatedText, task_type: TaskType.REPEAT });
       }
     } catch (e) {
         setDebug(e instanceof Error ? e.message : 'An unknown error occurred');
