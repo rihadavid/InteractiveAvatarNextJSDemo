@@ -160,7 +160,6 @@ export default function InteractiveAvatar() {
       }
 
       const reader = response.body.getReader();
-      let accumulatedText = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -170,18 +169,8 @@ export default function InteractiveAvatar() {
 
         if (chunk === '[END]') break;
 
-        accumulatedText += chunk;
-
-        // Start speaking as soon as we have some text
-        //if (!avatar.current.isSpeaking) {
-          avatar.current.speak({ text: accumulatedText, task_type: TaskType.REPEAT });
-        //}
+        avatar.current.speak({ text: chunk, task_type: TaskType.REPEAT });
       }
-
-      // If there's any remaining text, speak it
-      //if (accumulatedText/* && !avatar.current.isSpeaking*/) {
-      //  avatar.current.speak({ text: accumulatedText, task_type: TaskType.REPEAT });
-      //}
     } catch (e) {
         setDebug(e instanceof Error ? e.message : 'An unknown error occurred');
     } finally {
