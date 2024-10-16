@@ -397,11 +397,11 @@ export default function InteractiveAvatar() {
           )}
         </CardFooter>
       </Card>
-      <p className="font-mono text-right">
+      /*<p className="font-mono text-right">
         <span className="font-bold">Console:</span>
         <br />
         {debug}
-      </p>
+      </p>*/
     </div>
   );
 }

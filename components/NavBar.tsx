@@ -13,7 +13,7 @@ import { ThemeSwitch } from "./ThemeSwitch";
 export default function NavBar() {
   return (
     <Navbar className="w-full">
-      <NavbarBrand>
+      /*<NavbarBrand>
         <Link isExternal aria-label="HeyGen" href="https://app.heygen.com/">
           <HeyGenLogo />
         </Link>
@@ -64,7 +64,7 @@ export default function NavBar() {
           </Link>
           <ThemeSwitch />
         </NavbarItem>
-      </NavbarContent>
+      </NavbarContent>*/
     </Navbar>
   );
 }
