@@ -17,6 +17,8 @@ import {
   SelectItem,
   Spinner,
   Chip,
+  Tabs,
+  Tab,
 } from "@nextui-org/react";
 import { useEffect, useRef, useState } from "react";
 import { useMemoizedFn, usePrevious } from "ahooks";
@@ -42,11 +44,12 @@ export default function InteractiveAvatar() {
   const [text, setText] = useState<string>("");
   const mediaStream = useRef<HTMLVideoElement>(null);
   const avatar = useRef<StreamingAvatar | null>(null);
+  const [chatMode, setChatMode] = useState("text_mode");
   const [isUserTalking, setIsUserTalking] = useState(false);
-  const [isAvatarTalking, setIsAvatarTalking] = useState(false);
+    const [isAvatarTalking, setIsAvatarTalking] = useState(false);
 
   const [customSessionId, setCustomSessionId] = useState<string | null>(null);
-  const [signature, setSignature] = useState<string | null>(null);
+    const [signature, setSignature] = useState<string | null>(null);
   const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
 
   // Use useEffect to access search params after component mount
@@ -64,9 +67,6 @@ export default function InteractiveAvatar() {
     }
 
     setCustomSessionId(custom_session_id);
-
-    // Call startSession automatically
-    startSession();
   }, []);
 
   async function fetchAccessToken() {
@@ -117,7 +117,7 @@ export default function InteractiveAvatar() {
     });
     avatar.current.on(StreamingEvents.AVATAR_STOP_TALKING, (e) => {
       console.log("Avatar stopped talking", e);
-      setIsAvatarTalking(false);
+        setIsAvatarTalking(false);
     });
     avatar.current.on(StreamingEvents.STREAM_DISCONNECTED, () => {
       console.log("Stream disconnected");
@@ -130,17 +130,17 @@ export default function InteractiveAvatar() {
     avatar.current?.on(StreamingEvents.USER_START, async (event) => {
       console.log(">>>>> User started talking:", event);
 
-      setIsUserTalking(true);
+        setIsUserTalking(true);
 
-      if (isAvatarTalking) {
-        let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
-          method: 'GET',
-        }).catch(error => {
-          console.error('Error reporting interruption:', error);
-        });
-        setIsAvatarTalking(false);
-        await interruptTask;
-      }
+        if (isAvatarTalking) {
+            let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
+                method: 'GET',
+            }).catch(error => {
+                console.error('Error reporting interruption:', error);
+            });
+            setIsAvatarTalking(false);
+            await interruptTask;
+        }
     });
     avatar.current?.on(StreamingEvents.USER_STOP, (event) => {
       console.log(">>>>> User stopped talking:", event);
@@ -150,7 +150,7 @@ export default function InteractiveAvatar() {
       const res = await avatar.current.createStartAvatar({
         quality: AvatarQuality.Low,
         avatarName: avatarId,
-        knowledgeId: knowledgeId,
+        knowledgeId: knowledgeId, // Or use a custom `knowledgeBase`.
         voice: {
           rate: 1.5, // 0.5 ~ 1.5
           emotion: VoiceEmotion.EXCITED,
@@ -159,15 +159,15 @@ export default function InteractiveAvatar() {
       });
 
       setData(res);
-      // Start voice chat automatically
+      // default to voice mode
       await avatar.current?.startVoiceChat();
+      setChatMode("voice_mode");
     } catch (error) {
       console.error("Error starting avatar session:", error);
     } finally {
       setIsLoadingSession(false);
     }
   }
-
   async function handleSpeak() {
     setIsLoadingRepeat(true);
     if (!avatar.current) {
@@ -211,7 +211,6 @@ export default function InteractiveAvatar() {
       setIsLoadingRepeat(false);
     }
   }
-
   async function handleInterrupt() {
     if (!avatar.current) {
       setDebug("Avatar API not initialized");
@@ -225,7 +224,6 @@ export default function InteractiveAvatar() {
         setDebug(e.message);
       });
   }
-
   async function endSession() {
     await avatar.current?.stopAvatar();
     setStream(undefined);
@@ -235,7 +233,7 @@ export default function InteractiveAvatar() {
     }
   }
 
-  /*const handleChangeChatMode = useMemoizedFn(async (v) => {
+  const handleChangeChatMode = useMemoizedFn(async (v) => {
     if (v === chatMode) {
       return;
     }
@@ -254,7 +252,7 @@ export default function InteractiveAvatar() {
     } else if (previousText && !text) {
       avatar?.current?.stopListening();
     }
-  }, [text, previousText]);*/
+  }, [text, previousText]);
 
   useEffect(() => {
     return () => {
@@ -279,9 +277,7 @@ export default function InteractiveAvatar() {
     <div className="w-full flex flex-col gap-4">
       <Card>
         <CardBody className="h-[500px] flex flex-col justify-center items-center">
-          {isLoadingSession ? (
-            <Spinner color="default" size="lg" />
-          ) : stream ? (
+          {stream ? (
             <div className="h-[500px] w-[900px] justify-center items-center flex rounded-lg overflow-hidden">
               <video
                 ref={mediaStream}
@@ -297,6 +293,14 @@ export default function InteractiveAvatar() {
               </video>
               <div className="flex flex-col gap-2 absolute bottom-3 right-3">
                 <Button
+                  className="bg-gradient-to-tr from-indigo-500 to-indigo-300 text-white rounded-lg"
+                  size="md"
+                  variant="shadow"
+                  onClick={handleInterrupt}
+                >
+                  Interrupt task
+                </Button>
+                <Button
                   className="bg-gradient-to-tr from-indigo-500 to-indigo-300  text-white rounded-lg"
                   size="md"
                   variant="shadow"
@@ -306,22 +310,109 @@ export default function InteractiveAvatar() {
                 </Button>
               </div>
             </div>
+          ) : !isLoadingSession ? (
+            <div className="h-full justify-center items-center flex flex-col gap-8 w-[500px] self-center">
+              <div className="flex flex-col gap-2 w-full">
+                <p className="text-sm font-medium leading-none">
+                  Custom Knowledge ID (optional)
+                </p>
+                <Input
+                  placeholder="Enter a custom knowledge ID"
+                  value={knowledgeId}
+                  onChange={(e) => setKnowledgeId(e.target.value)}
+                />
+                <p className="text-sm font-medium leading-none">
+                  Custom Avatar ID (optional)
+                </p>
+                <Input
+                  placeholder="Enter a custom avatar ID"
+                  value={avatarId}
+                  onChange={(e) => setAvatarId(e.target.value)}
+                />
+                <Select
+                  placeholder="Or select one from these example avatars"
+                  size="md"
+                  onChange={(e) => {
+                    setAvatarId(e.target.value);
+                  }}
+                >
+                  {AVATARS.map((avatar) => (
+                    <SelectItem
+                      key={avatar.avatar_id}
+                      textValue={avatar.avatar_id}
+                    >
+                      {avatar.name}
+                    </SelectItem>
+                  ))}
+                </Select>
+                <Select
+                  label="Select language"
+                  placeholder="Select language"
+                  className="max-w-xs"
+                  selectedKeys={[language]}
+                  onChange={(e) => {
+                    setLanguage(e.target.value);
+                  }}
+                >
+                  {STT_LANGUAGE_LIST.map((lang) => (
+                    <SelectItem key={lang.key}>
+                      {lang.label}
+                    </SelectItem>
+                  ))}
+                </Select>
+              </div>
+              <Button
+                className="bg-gradient-to-tr from-indigo-500 to-indigo-300 w-full text-white"
+                size="md"
+                variant="shadow"
+                onClick={startSession}
+              >
+                Start session
+              </Button>
+            </div>
           ) : (
             <Spinner color="default" size="lg" />
           )}
         </CardBody>
         <Divider />
         <CardFooter className="flex flex-col gap-3 relative">
-          <div className="w-full text-center">
-            <Button
-              isDisabled={!isUserTalking}
-              className="bg-gradient-to-tr from-indigo-500 to-indigo-300 text-white"
-              size="md"
-              variant="shadow"
-            >
-              {isUserTalking ? "Listening" : "Voice chat"}
-            </Button>
-          </div>
+          <Tabs
+            aria-label="Options"
+            selectedKey={chatMode}
+            onSelectionChange={(v) => {
+              handleChangeChatMode(v);
+            }}
+          >
+            <Tab key="text_mode" title="Text mode" />
+            <Tab key="voice_mode" title="Voice mode" />
+          </Tabs>
+          {chatMode === "text_mode" ? (
+            <div className="w-full flex relative">
+              <InteractiveAvatarTextInput
+                disabled={!stream}
+                input={text}
+                label="Chat"
+                loading={isLoadingRepeat}
+                placeholder="Type something for the avatar to respond"
+                setInput={setText}
+                onSubmit={handleSpeak}
+              />
+              {text && (
+                <Chip className="absolute right-16 top-3">Listening</Chip>
+              )}
+            </div>
+          ) : (
+            <div className="w-full text-center">
+              <Button
+                isDisabled={!isUserTalking}
+                className="bg-gradient-to-tr from-indigo-500 to-indigo-300 text-white"
+                size="md"
+                variant="shadow"
+              >
+                {isUserTalking ? "Listening" : "Voice chat"}
+              </Button>
+            </div>
+          )}
         </CardFooter>
       </Card>
     </div>
