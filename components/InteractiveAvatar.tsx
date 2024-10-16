@@ -113,14 +113,51 @@ export default function InteractiveAvatar() {
     setIsLoadingRepeat(true);
     if (!avatar.current) {
       setDebug("Avatar API not initialized");
-
       return;
     }
-    // speak({ text: text, task_type: TaskType.REPEAT })
-    await avatar.current.speak({ text: text }).catch((e) => {
+
+      // speak({ text: text, task_type: TaskType.REPEAT })
+      /*await avatar.current.speak({ text: text }).catch((e) => {
+          setDebug(e.message);
+      });
+      setIsLoadingRepeat(false);*/
+
+    try {
+      const response = await fetch('/api/lambda-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      let accumulatedText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        accumulatedText += chunk;
+
+        // Start speaking as soon as we have some text
+        if (!avatar.current.isSpeaking) {
+          avatar.current.speak({ text: accumulatedText });
+        }
+      }
+
+      // If there's any remaining text, speak it
+      if (accumulatedText && !avatar.current.isSpeaking) {
+        avatar.current.speak({ text: accumulatedText });
+      }
+    } catch (e) {
       setDebug(e.message);
-    });
-    setIsLoadingRepeat(false);
+    } finally {
+      setIsLoadingRepeat(false);
+    }
   }
   async function handleInterrupt() {
     if (!avatar.current) {
@@ -326,3 +363,4 @@ export default function InteractiveAvatar() {
     </div>
   );
 }
+
