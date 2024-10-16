@@ -20,7 +20,7 @@ import {
   Tabs,
   Tab,
 } from "@nextui-org/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useMemoizedFn, usePrevious } from "ahooks";
 import { useSearchParams } from 'next/navigation';
 
@@ -51,6 +51,9 @@ export default function InteractiveAvatar() {
   const [customSessionId, setCustomSessionId] = useState<string | null>(null);
     const [signature, setSignature] = useState<string | null>(null);
   const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
+
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   // Use useEffect to access search params after component mount
   useEffect(() => {
@@ -129,22 +132,27 @@ export default function InteractiveAvatar() {
     });
     avatar.current?.on(StreamingEvents.USER_START, async (event) => {
       console.log(">>>>> User started talking:", event);
+      setIsUserTalking(true);
 
-        setIsUserTalking(true);
+      if (isAvatarTalking) {
+        let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
+          method: 'GET',
+        }).catch(error => {
+          console.error('Error reporting interruption:', error);
+        });
+        setIsAvatarTalking(false);
+        await interruptTask;
+      }
 
-        if (isAvatarTalking) {
-            let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
-                method: 'GET',
-            }).catch(error => {
-                console.error('Error reporting interruption:', error);
-            });
-            setIsAvatarTalking(false);
-            await interruptTask;
-        }
+      // Start recording when user starts talking
+      await startRecording();
     });
-    avatar.current?.on(StreamingEvents.USER_STOP, (event) => {
+    avatar.current?.on(StreamingEvents.USER_STOP, async (event) => {
       console.log(">>>>> User stopped talking:", event);
       setIsUserTalking(false);
+
+      // Stop recording and transcribe when user stops talking
+      await stopRecording();
     });
     try {
       const res = await avatar.current.createStartAvatar({
@@ -272,6 +280,62 @@ export default function InteractiveAvatar() {
       };
     }
   }, [mediaStream, stream]);
+
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm',
+      });
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          setAudioChunks((chunks) => [...chunks, event.data]);
+        }
+      };
+
+      mediaRecorder.start();
+    } catch (error) {
+      console.error("Error starting recording:", error);
+    }
+  }, []);
+
+  const stopRecording = useCallback(async () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+        setAudioChunks([]);
+      };
+    }
+  }, [audioChunks]);
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
+    formData.append('model', 'whisper-1');
+
+    try {
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Transcription failed');
+      }
+
+      const data = await response.json();
+      setText(data.text);
+      // Automatically trigger the handleSpeak function
+      await handleSpeak();
+    } catch (error) {
+      console.error("Error transcribing audio:", error);
+      setDebug("Error transcribing audio");
+    }
+  };
 
   return (
     <div className="w-full flex flex-col gap-4">
