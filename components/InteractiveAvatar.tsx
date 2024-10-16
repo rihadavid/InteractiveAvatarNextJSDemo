@@ -20,6 +20,7 @@ import {
 } from "@nextui-org/react";
 import { useEffect, useRef, useState } from "react";
 import { useMemoizedFn, usePrevious } from "ahooks";
+import { useSearchParams } from 'next/navigation';
 
 import InteractiveAvatarTextInput from "./InteractiveAvatarTextInput";
 
@@ -40,6 +41,12 @@ export default function InteractiveAvatar() {
   const avatar = useRef<StreamingAvatar | null>(null);
   const [chatMode, setChatMode] = useState("text_mode");
   const [isUserTalking, setIsUserTalking] = useState(false);
+
+  const searchParams = useSearchParams();
+  const userId = searchParams.get('userId');
+  const chatId = searchParams.get('chatId');
+  const signature = searchParams.get('callId');
+  const botUsername = searchParams.get('botUsername');
 
   async function fetchAccessToken() {
     try {
@@ -115,18 +122,17 @@ export default function InteractiveAvatar() {
       setDebug("Avatar API not initialized");
       return;
     }
-
-      // speak({ text: text, task_type: TaskType.REPEAT })
-      /*await avatar.current.speak({ text: text }).catch((e) => {
-          setDebug(e.message);
-      });
-      setIsLoadingRepeat(false);*/
+    
+    let custom_session_id = `${userId}:${chatId}:${signature}`;
+    if (botUsername) {
+      custom_session_id += `:${botUsername}`;
+    }
 
     try {
       const response = await fetch('/api/lambda-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, custom_session_id }),
       });
 
       if (!response.body) {
@@ -363,4 +369,3 @@ export default function InteractiveAvatar() {
     </div>
   );
 }
-

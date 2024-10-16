@@ -6,12 +6,12 @@ export async function POST(req: Request) {
     return new NextResponse('WebSocket URL is not configured', { status: 500 });
   }
 
-  const { message } = await req.json();
+  const { message, custom_session_id } = await req.json();
 
   // Create a ReadableStream from the generator function
   const stream = new ReadableStream({
     async start(controller) {
-      for await (const chunk of streamResponse(wsUrl, message)) {
+      for await (const chunk of streamResponse(wsUrl, message, custom_session_id)) {
         controller.enqueue(chunk);
       }
       controller.close();
@@ -27,11 +27,15 @@ export async function POST(req: Request) {
   });
 }
 
-async function* streamResponse(wsUrl: string, message: string) {
+async function* streamResponse(wsUrl: string, message: string, custom_session_id: string) {
   const ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
-    ws.send(JSON.stringify({ message }));
+    ws.send(JSON.stringify({ 
+      action: 'MESSAGE',
+      message,
+      custom_session_id 
+    }));
   };
 
   while (true) {
