@@ -1,3 +1,5 @@
+'use client';
+
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
 
 import StreamingAvatar, {
@@ -42,11 +44,23 @@ export default function InteractiveAvatar() {
   const [chatMode, setChatMode] = useState("text_mode");
   const [isUserTalking, setIsUserTalking] = useState(false);
 
-  const searchParams = useSearchParams();
-  const userId = searchParams.get('userId');
-  const chatId = searchParams.get('chatId');
-  const signature = searchParams.get('callId');
-  const botUsername = searchParams.get('botUsername');
+  const [customSessionId, setCustomSessionId] = useState<string | null>(null);
+
+  // Use useEffect to access search params after component mount
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const userId = searchParams.get('userId');
+    const chatId = searchParams.get('chatId');
+    const signature = searchParams.get('callId');
+    const botUsername = searchParams.get('botUsername');
+
+    let custom_session_id = `${userId}:${chatId}:${signature}`;
+    if (botUsername) {
+      custom_session_id += `:${botUsername}`;
+    }
+
+    setCustomSessionId(custom_session_id);
+  }, []);
 
   async function fetchAccessToken() {
     try {
@@ -123,16 +137,16 @@ export default function InteractiveAvatar() {
       return;
     }
     
-    let custom_session_id = `${userId}:${chatId}:${signature}`;
-    if (botUsername) {
-      custom_session_id += `:${botUsername}`;
+    if (!customSessionId) {
+      setDebug("Custom session ID not available");
+      return;
     }
 
     try {
       const response = await fetch('/api/lambda-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, custom_session_id }),
+        body: JSON.stringify({ message: text, custom_session_id: customSessionId }),
       });
 
       if (!response.body) {
