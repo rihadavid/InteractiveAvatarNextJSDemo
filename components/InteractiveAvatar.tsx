@@ -29,6 +29,7 @@ import InteractiveAvatarTextInput from "./InteractiveAvatarTextInput";
 import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
+const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
 export default function InteractiveAvatar() {
   const [isLoadingSession, setIsLoadingSession] = useState(false);
@@ -47,6 +48,7 @@ export default function InteractiveAvatar() {
   const [isUserTalking, setIsUserTalking] = useState(false);
 
   const [customSessionId, setCustomSessionId] = useState<string | null>(null);
+    const [signature, setSignature] = useState<string | null>(null);
   const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
 
   // Use useEffect to access search params after component mount
@@ -54,7 +56,7 @@ export default function InteractiveAvatar() {
     const searchParams = new URLSearchParams(window.location.search);
     const userId = searchParams.get('userId');
     const chatId = searchParams.get('chatId');
-    const signature = searchParams.get('callId');
+    setSignature(searchParams.get('callId'));
     const botUsername = searchParams.get('botUsername');
 
     let custom_session_id = `${userId}:${chatId}:${signature}`;
@@ -200,11 +202,19 @@ export default function InteractiveAvatar() {
 
       return;
     }
+      let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
+          method: 'GET',
+      }).catch(error => {
+          console.error('Error reporting interruption:', error);
+      });
+
     await avatar.current
       .interrupt()
       .catch((e) => {
         setDebug(e.message);
       });
+
+    await interruptTask;
   }
   async function endSession() {
     await avatar.current?.stopAvatar();
