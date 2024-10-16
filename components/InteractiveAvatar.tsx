@@ -182,7 +182,11 @@ export default function InteractiveAvatar() {
           return;
         }
 
-        await avatar.current.speak({ text: chunk, task_type: TaskType.REPEAT });
+        if (avatar.current) {
+          await avatar.current.speak({ text: chunk, task_type: TaskType.REPEAT });
+        } else {
+          setDebug("Avatar API not initialized during speech");
+        }
       };
     } catch (e) {
       setDebug(e instanceof Error ? e.message : 'An unknown error occurred');
