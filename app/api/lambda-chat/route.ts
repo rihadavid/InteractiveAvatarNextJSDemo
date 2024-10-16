@@ -4,9 +4,23 @@ const wsUrl = process.env.WSS_URL;
 export async function POST(req: Request) {
   const { message } = await req.json();
 
-  // WebSocket connection URL (replace with your actual WebSocket URL)
+  // Create a ReadableStream from the generator function
+  const stream = new ReadableStream({
+    async start(controller) {
+      for await (const chunk of streamResponse(wsUrl, message)) {
+        controller.enqueue(chunk);
+      }
+      controller.close();
+    },
+  });
 
-  return new NextResponse(streamResponse(wsUrl, message));
+  // Return a streaming response
+  return new NextResponse(stream, {
+    headers: {
+      'Content-Type': 'text/plain',
+      'Transfer-Encoding': 'chunked',
+    },
+  });
 }
 
 async function* streamResponse(wsUrl: string, message: string) {
