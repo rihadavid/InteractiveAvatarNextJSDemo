@@ -154,7 +154,7 @@ export default function InteractiveAvatar() {
         avatar.current.speak({ text: accumulatedText });
       }
     } catch (e) {
-      setDebug(e.message);
+        setDebug(e instanceof Error ? e.message : 'An unknown error occurred');
     } finally {
       setIsLoadingRepeat(false);
     }
