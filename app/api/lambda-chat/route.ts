@@ -41,8 +41,7 @@ async function* streamResponse(wsUrl: string, message: string, custom_session_id
   while (true) {
     const chunk = await new Promise<string>((resolve) => {
       ws.onmessage = (event) => {
-          console.log('webscocket received message: ' + event);
-          console.log('webscocket received message event.data: ' + event.data);
+          //console.log('webscocket received message token: ' + event.data);
         resolve(event.data);
       };
     });

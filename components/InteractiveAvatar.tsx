@@ -167,6 +167,9 @@ export default function InteractiveAvatar() {
         if (done) break;
 
         const chunk = new TextDecoder().decode(value);
+
+        if (chunk === '[END]') break;
+
         accumulatedText += chunk;
 
         // Start speaking as soon as we have some text
@@ -176,9 +179,9 @@ export default function InteractiveAvatar() {
       }
 
       // If there's any remaining text, speak it
-      if (accumulatedText/* && !avatar.current.isSpeaking*/) {
-        avatar.current.speak({ text: accumulatedText, task_type: TaskType.REPEAT });
-      }
+      //if (accumulatedText/* && !avatar.current.isSpeaking*/) {
+      //  avatar.current.speak({ text: accumulatedText, task_type: TaskType.REPEAT });
+      //}
     } catch (e) {
         setDebug(e instanceof Error ? e.message : 'An unknown error occurred');
     } finally {
