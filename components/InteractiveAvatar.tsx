@@ -28,6 +28,8 @@ import InteractiveAvatarTextInput from "./InteractiveAvatarTextInput";
 
 import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 
+const wsUrl = process.env.WSS_URL;
+
 export default function InteractiveAvatar() {
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [isLoadingRepeat, setIsLoadingRepeat] = useState(false);
@@ -84,8 +86,6 @@ export default function InteractiveAvatar() {
     setIsLoadingSession(true);
     const newToken = await fetchAccessToken();
 
-    
-    const wsUrl = process.env.WSS_URL;
     if (!wsUrl) {
       console.error("WebSocket URL is not configured");
       return;
