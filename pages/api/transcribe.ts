@@ -8,6 +8,11 @@ export const config = {
   },
 };
 
+interface WhisperResponse {
+  text: string;
+  duration?: number;
+}
+
 async function buffer(readable: Readable) {
   const chunks = [];
   for await (const chunk of readable) {
@@ -22,36 +27,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const contentType = req.headers['content-type'];
-    if (!contentType || !contentType.includes('multipart/form-data')) {
-      return res.status(400).json({ error: 'Invalid content type' });
-    }
-
     const buf = await buffer(req);
-    const boundary = contentType.split('boundary=')[1];
-    const parts = buf.toString().split(`--${boundary}`);
-    let audioData: Buffer | null = null;
-
-    for (const part of parts) {
-      if (part.includes('name="file"')) {
-        const fileContent = part.split('\r\n\r\n')[1];
-        audioData = Buffer.from(fileContent, 'binary');
-        break;
-      }
-    }
-
-    if (!audioData) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
     const formData = new FormData();
-    formData.append('file', new Blob([audioData]), 'audio.webm');
     formData.append('model', 'whisper-1');
+    formData.append('response_format', 'verbose_json');
+    formData.append('file', new Blob([buf]), 'audio.webm');
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.WHISPER_API_KEY}`,
+        'Authorization': `Bearer ${process.env.WHISPER_API_KEY}`
       },
       body: formData,
     });
@@ -60,8 +45,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error('OpenAI API request failed');
     }
 
-    const data: { text: string } = await response.json();
-    res.status(200).json({ text: data.text });
+    const data: WhisperResponse = await response.json();
+    const result = data.text ?? data;
+    const duration = data.duration;
+
+    res.status(200).json({ text: result, duration });
   } catch (error) {
     console.error('Error transcribing audio:', error);
     res.status(500).json({ error: 'Error transcribing audio' });
