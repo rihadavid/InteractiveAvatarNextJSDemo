@@ -23,7 +23,7 @@ export async function POST() {
   } catch (error) {
     console.error("Error retrieving access token:", error);
 
-    return new Response("Failed to retrieve access token", {
+    return new Response("Failed to retrieve access token, HEYGEN_API_KEY: " + HEYGEN_API_KEY, {
       status: 500,
     });
   }
