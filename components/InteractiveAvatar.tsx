@@ -56,10 +56,11 @@ export default function InteractiveAvatar() {
     const searchParams = new URLSearchParams(window.location.search);
     const userId = searchParams.get('userId');
     const chatId = searchParams.get('chatId');
-    setSignature(searchParams.get('callId'));
+    const s = searchParams.get('callId');
+    setSignature(s);
     const botUsername = searchParams.get('botUsername');
 
-    let custom_session_id = `${userId}:${chatId}:${signature}`;
+    let custom_session_id = `${userId}:${chatId}:${s}`;
     if (botUsername) {
       custom_session_id += `:${botUsername}`;
     }
