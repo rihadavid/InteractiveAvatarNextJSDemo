@@ -184,7 +184,7 @@ export default function InteractiveAvatar() {
 
       setData(res);
 
-        const myvad = await useMicVAD .new({
+        const myvad = useMicVAD({
             onSpeechStart: (audio) => {
                 console.log("VAD speech start")
                 // do something with `audio` (Float32Array of audio samples at sample rate 16000)...
@@ -193,8 +193,8 @@ export default function InteractiveAvatar() {
                 console.log("VAD speech end")
                 // do something with `audio` (Float32Array of audio samples at sample rate 16000)...
             },
-        })
-        myvad.start()
+        });
+        //myvad.start()
     } catch (error) {
       console.error("Error starting avatar session or VAD:", error);
     } finally {
