@@ -75,19 +75,25 @@ export default function InteractiveAvatar() {
 
   // Use useEffect to access search params after component mount
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const userId = searchParams.get('userId');
-    const chatId = searchParams.get('chatId');
-    const s = searchParams.get('callId');
-    setSignature(s);
-    const botUsername = searchParams.get('botUsername');
+      console.log("will try to set custom_session_id")
+      try {
+          const searchParams = new URLSearchParams(window.location.search);
+          const userId = searchParams.get('userId');
+          const chatId = searchParams.get('chatId');
+          const s = searchParams.get('callId');
+          setSignature(s);
+          const botUsername = searchParams.get('botUsername');
 
-    let custom_session_id = `${userId}:${chatId}:${s}`;
-    if (botUsername) {
-      custom_session_id += `:${botUsername}`;
-    }
+          let custom_session_id = `${userId}:${chatId}:${s}`;
+          if (botUsername) {
+              custom_session_id += `:${botUsername}`;
+          }
 
-    setCustomSessionId(custom_session_id);
+          console.log("Setting custom_session_id to: " + custom_session_id)
+          setCustomSessionId(custom_session_id);
+      }catch(e){
+          console.error('Error set custom_session_id:', e);
+      }
   }, []);
 
   async function fetchAccessToken() {
