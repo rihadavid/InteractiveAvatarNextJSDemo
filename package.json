@@ -9,6 +9,7 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
+    "fs": "latest",
     "naudiodon2":"latest",
     "sherpa-onnx-node": "latest",
     "@ai-sdk/openai": "^0.0.63",
