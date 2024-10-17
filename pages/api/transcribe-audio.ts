@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
+import FormData from "form-data";
 
 export const config = {
   api: {
