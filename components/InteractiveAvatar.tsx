@@ -28,6 +28,9 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true,
 });
 
+const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
+const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
+
 export default function InteractiveAvatar() {
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [isLoadingRepeat, setIsLoadingRepeat] = useState(false);
@@ -40,6 +43,13 @@ export default function InteractiveAvatar() {
   const [text, setText] = useState<string>("");
   const [initialized, setInitialized] = useState(false); // Track initialization
   const [recording, setRecording] = useState(false); // Track recording state
+    const [isUserTalking, setIsUserTalking] = useState(false);
+    const [isAvatarTalking, setIsAvatarTalking] = useState(false);
+
+    const [customSessionId, setCustomSessionId] = useState<string | null>(null);
+    const [signature, setSignature] = useState<string | null>(null);
+    const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
+
   const mediaStream = useRef<HTMLVideoElement>(null);
   const avatar = useRef<StreamingAvatarApi | null>(null);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
@@ -72,6 +82,22 @@ export default function InteractiveAvatar() {
     ],
   });
 
+    useEffect(() => {
+        const searchParams = new URLSearchParams(window.location.search);
+        const userId = searchParams.get('userId');
+        const chatId = searchParams.get('chatId');
+        const s = searchParams.get('callId');
+        setSignature(s);
+        const botUsername = searchParams.get('botUsername');
+
+        let custom_session_id = `${userId}:${chatId}:${s}`;
+        if (botUsername) {
+            custom_session_id += `:${botUsername}`;
+        }
+
+        setCustomSessionId(custom_session_id);
+    }, []);
+
   async function fetchAccessToken() {
     try {
       const response = await fetch("/api/get-access-token", {
@@ -93,6 +119,25 @@ export default function InteractiveAvatar() {
       setDebug("Avatar API is not initialized");
       return;
     }
+
+      if (!wsUrl) {
+          console.error("WebSocket URL is not configured");
+          return;
+      }
+
+      const ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+          console.log("WebSocket connection established");
+          setWsConnection(ws);
+      };
+      ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+      };
+      ws.onclose = () => {
+          console.log("WebSocket connection closed");
+          setWsConnection(null);
+      };
+
     try {
       const res = await avatar.current.createStartAvatar(
         {
@@ -124,15 +169,39 @@ export default function InteractiveAvatar() {
 
     const startTalkCallback = (e: any) => {
       console.log("Avatar started talking", e);
+        setIsAvatarTalking(true);
     };
 
     const stopTalkCallback = (e: any) => {
       console.log("Avatar stopped talking", e);
+        setIsAvatarTalking(false);
     };
+
+      const userStartTalkCallback = (e: any) => {
+          console.log("User started talking", e);
+          setIsUserTalking(true);
+
+          if (isAvatarTalking) {
+              let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
+                  method: 'GET',
+              }).catch(error => {
+                  console.error('Error reporting interruption:', error);
+              });
+              setIsAvatarTalking(false);
+              await interruptTask;
+          }
+      };
+
+      const userStopTalkCallback = (e: any) => {
+          console.log("User stopped talking", e);
+          setIsUserTalking(false);
+      };
 
     console.log("Adding event handlers:", avatar.current);
     avatar.current.addEventHandler("avatar_start_talking", startTalkCallback);
     avatar.current.addEventHandler("avatar_stop_talking", stopTalkCallback);
+      avatar.current.addEventHandler("user_start", userStartTalkCallback);
+      avatar.current.addEventHandler("user_stop", userStopTalkCallback);
 
     setInitialized(true);
   }
@@ -159,6 +228,10 @@ export default function InteractiveAvatar() {
       setDebug
     );
     setStream(undefined);
+      if (wsConnection) {
+          wsConnection.close();
+          setWsConnection(null);
+      }
   }
 
   async function handleSpeak() {
@@ -167,12 +240,41 @@ export default function InteractiveAvatar() {
       setDebug("Avatar API not initialized");
       return;
     }
-    await avatar.current
-      .speak({ taskRequest: { text: text, sessionId: data?.sessionId } })
-      .catch((e) => {
-        setDebug(e.message);
-      });
-    setIsLoadingRepeat(false);
+      if (!customSessionId) {
+          setDebug("Custom session ID not available");
+          return;
+      }
+
+      if (!wsConnection) {
+          setDebug("WebSocket connection not established");
+          return;
+      }
+
+      try {
+          wsConnection.send(JSON.stringify({
+              action: 'MESSAGE',
+              message: text,
+              custom_session_id: customSessionId
+          }));
+
+          wsConnection.onmessage = async (event) => {
+              const chunk = event.data;
+
+              if (chunk === '[END]') {
+                  return;
+              }
+
+              if (avatar.current) {
+                  await avatar.current.speak({ text: chunk, task_type: TaskType.REPEAT });
+              } else {
+                  setDebug("Avatar API not initialized during speech");
+              }
+          };
+      } catch (e) {
+          setDebug(e instanceof Error ? e.message : 'An unknown error occurred');
+      } finally {
+          setIsLoadingRepeat(false);
+      }
   }
 
   useEffect(() => {
@@ -188,8 +290,11 @@ export default function InteractiveAvatar() {
 
     return () => {
       endSession();
+      if (wsConnection) {
+            wsConnection.close();
+        }
     };
-  }, []);
+  }, [wsConnection]);
 
   useEffect(() => {
     if (stream && mediaStream.current) {
