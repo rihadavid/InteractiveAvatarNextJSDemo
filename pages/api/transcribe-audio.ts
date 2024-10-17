@@ -64,11 +64,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(200).json({ text: transcribedText, duration });
     } catch (error) {
         console.error('Error transcribing audio:', error);
-        if (axios.isAxiosError(error)) {
-            console.error('Response data:', error.response?.data);
-            console.error('Response status:', error.response?.status);
-            console.error('Response headers:', error.response?.headers);
-        }
-        res.status(500).json({ error: 'Error transcribing audio', details: error.message });
+        res.status(500).json({ error: 'Error transcribing audio' });
     }
 }
