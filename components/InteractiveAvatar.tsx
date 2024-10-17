@@ -150,6 +150,7 @@ export default function InteractiveAvatar() {
         setDebug
       );
       setData(res);
+      console.log('setStream setting to ' + !!avatar.current.mediaStream + 'from startSession');
       setStream(avatar.current.mediaStream);
     } catch (error) {
       console.error("Error starting avatar session:", error);
@@ -227,6 +228,7 @@ export default function InteractiveAvatar() {
       { stopSessionRequest: { sessionId: data?.sessionId } },
       setDebug
     );
+      console.log('setStream setting to undefined from endSession');
     setStream(undefined);
       if (wsConnection) {
           wsConnection.close();
@@ -289,6 +291,7 @@ export default function InteractiveAvatar() {
     init();
 
     return () => {
+      console.log('endSession called from useEffect');
       endSession();
       if (wsConnection) {
             wsConnection.close();
