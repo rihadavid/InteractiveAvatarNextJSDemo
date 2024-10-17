@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Readable } from 'stream';
 import OpenAI from 'openai';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
 export const config = {
     api: {
@@ -14,12 +16,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        const openaiApiKey = process.env.WHISPER_API_KEY;
-        if (!openaiApiKey) {
-            return res.status(500).json({ error: 'OpenAI API key not configured' });
+        const whisperApiKey = process.env.WHISPER_API_KEY;
+        if (!whisperApiKey) {
+            return res.status(500).json({ error: 'Whisper API key not configured' });
         }
 
-        const openai = new OpenAI({ apiKey: openaiApiKey });
+        const openai = new OpenAI({ apiKey: whisperApiKey });
 
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -51,15 +53,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: 'No audio file found in request' });
         }
 
-        // Create a readable stream from the buffer
-        const audioStream = new Readable();
-        audioStream.push(audioData);
-        audioStream.push(null);
+        // Write the buffer to a temporary file
+        const tempDir = os.tmpdir();
+        const tempFilePath = path.join(tempDir, 'audio.webm');
+        await fs.promises.writeFile(tempFilePath, audioData);
 
         const transcription = await openai.audio.transcriptions.create({
-            file: audioStream,
+            file: fs.createReadStream(tempFilePath),
             model: "whisper-1",
         });
+
+        // Clean up the temporary file
+        await fs.promises.unlink(tempFilePath);
 
         res.status(200).json({ text: transcription.text });
     } catch (error) {
