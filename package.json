@@ -9,8 +9,8 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
+    "formidable-serverless": "latest",
     "axios":"latest",
-    "formidable":"latest",
     "form-data":"latest",
     "copy-webpack-plugin": "latest",
     "onnxruntime-web": "1.14.0",
