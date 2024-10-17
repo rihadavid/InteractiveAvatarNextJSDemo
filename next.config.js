@@ -1,41 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    api: {
-        bodyParser: false,
-    },
-    webpack: (config, { isServer }) => {
-        if (!isServer) {
-            config.resolve.fallback = {
-                fs: false,
-                path: false,
-                crypto: false,
-            };
-        }
-
-        config.module.rules.push({
-            test: /\.wasm$/,
-            type: 'asset/resource',
-        });
-
-        return config;
-    },
-    async headers() {
-        return [
-            {
-                source: '/(.*)',
-                headers: [
-                    {
-                        key: 'Cross-Origin-Opener-Policy',
-                        value: 'same-origin',
-                    },
-                    {
-                        key: 'Cross-Origin-Embedder-Policy',
-                        value: 'require-corp',
-                    },
-                ],
-            },
-        ];
-    },
+    // ...
+    plugins: [
+        // ...
+        new CopyPlugin({
+            patterns: [
+                // ...
+                {
+                    from: "node_modules/@ricky0123/vad-web/dist/vad.worklet.bundle.min.js",
+                    to: "[name][ext]",
+                },
+                {
+                    from: "node_modules/@ricky0123/vad-web/dist/*.onnx",
+                    to: "[name][ext]",
+                },
+                { from: "node_modules/onnxruntime-web/dist/*.wasm", to: "[name][ext]" },
+            ],
+        }),
+    ],
 }
 
 module.exports = nextConfig

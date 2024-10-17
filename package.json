@@ -9,8 +9,9 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
+    "copy-webpack-plugin": "latest",
     "onnxruntime-web": "1.14.0",
-    "@ricky0123/vad-web": "0.0.7",
+    "@ricky0123/vad-react": "0.0.7",
     "@ai-sdk/openai": "^0.0.63",
     "@heygen/streaming-avatar": "^2.0.6",
     "@nextui-org/button": "2.0.34",

@@ -28,7 +28,7 @@ import InteractiveAvatarTextInput from "./InteractiveAvatarTextInput";
 
 import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 
-import { MicVAD } from "@ricky0123/vad-web";
+import { MicVAD } from "@ricky0123/vad-react";
 
 import * as ort from 'onnxruntime-web';
 
@@ -59,7 +59,17 @@ export default function InteractiveAvatar() {
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  const [vadInstance, setVadInstance] = useState<MicVAD | null>(null);
+    const MyComponent = () => {
+        const vad = MicVAD({
+            startOnLoad: true,
+            onSpeechEnd: (audio) => {
+                console.log("User stopped talking")
+            },
+        })
+        return <div>{vad.userSpeaking && "User is speaking"}</div>
+    }
+
+  //const [vadInstance, setVadInstance] = useState<MicVAD | null>(null);
 
   // Use useEffect to access search params after component mount
   useEffect(() => {
@@ -174,28 +184,12 @@ export default function InteractiveAvatar() {
 
       setData(res);
 
-      // Initialize and start VAD
-      const myvad = await MicVAD.new({
-        onSpeechStart: () => {
-          console.log("Speech start detected");
-          setIsUserTalking(true);
-          startRecording();
-        },
-        onSpeechEnd: async (audio: Float32Array) => {
-          console.log("Speech end detected");
-          setIsUserTalking(false);
-          await stopRecording();
-        },
-        onVADMisfire: () => {
-          console.log("VAD misfire");
-          setIsUserTalking(false);
-          stopRecording();
-        }
-      });
-
-      await myvad.start();
-      setVadInstance(myvad);
-
+       /* const myvad = await MicVAD.new({
+            onSpeechEnd: (audio) => {
+                // do something with `audio` (Float32Array of audio samples at sample rate 16000)...
+            },
+        })
+        myvad.start()*/
     } catch (error) {
       console.error("Error starting avatar session or VAD:", error);
     } finally {
@@ -265,10 +259,10 @@ export default function InteractiveAvatar() {
       wsConnection.close();
       setWsConnection(null);
     }
-    if (vadInstance) {
+    /*if (vadInstance) {
       await vadInstance.pause();
       setVadInstance(null);
-    }
+    }*/
   }
 
   const handleChangeChatMode = useMemoizedFn(async (v) => {
