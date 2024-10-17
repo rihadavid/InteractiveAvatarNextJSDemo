@@ -1,7 +1,11 @@
 const CopyPlugin = require("copy-webpack-plugin");
 
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    api: {
+        bodyParser: false,
+    },
     webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
         // Add CopyPlugin to the webpack configuration
         config.plugins.push(
