@@ -26,15 +26,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'OpenAI API key not configured' });
     }
 
-    const formData = new FormData();
-    formData.append('model', 'whisper-1');
-    formData.append('response_format', 'verbose_json');
-    formData.append('file', new Blob([buffer]), 'audio.webm');
+    const form = new FormData();
+    form.append('model', 'whisper-1');
+    form.append('response_format', 'verbose_json');
+    form.append('file', new Blob([buffer]), 'audio.webm');
 
-    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
+    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', form, {
       headers: {
+          ...form.getHeaders(),
         'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'multipart/form-data',
       },
     });
 
