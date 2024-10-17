@@ -1,3 +1,14 @@
+// Add this type declaration at the top of your file
+declare module 'formidable' {
+    export class IncomingForm {
+        parse(req: any, callback: (err: any, fields: any, files: any) => void): void;
+        keepExtensions: boolean;
+    }
+    export interface File {
+        filepath: string;
+    }
+}
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import formidable from 'formidable';
@@ -25,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const form = new formidable.IncomingForm();
         form.keepExtensions = true;
 
-        const [fields, files] = await new Promise((resolve, reject) => {
+        const [fields, files] = await new Promise<[any, any]>((resolve, reject) => {
             form.parse(req, (err, fields, files) => {
                 if (err) reject(err);
                 else resolve([fields, files]);
