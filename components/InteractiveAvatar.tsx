@@ -218,18 +218,22 @@ export default function InteractiveAvatar() {
     }
   }
   async function handleSpeak() {
+      console.log("Handle speak invoked");
     setIsLoadingRepeat(true);
     if (!avatar.current) {
+        console.log("Avatar API not initialized");
       setDebug("Avatar API not initialized");
       return;
     }
 
     if (!customSessionId) {
+        console.log("Custom session ID not available");
       setDebug("Custom session ID not available");
       return;
     }
 
     if (!wsConnection) {
+        console.log("WebSocket connection not established");
       setDebug("WebSocket connection not established");
       return;
     }
@@ -242,6 +246,7 @@ export default function InteractiveAvatar() {
       }));
 
       wsConnection.onmessage = async (event) => {
+          console.log("wsConnection.onmessage");
         const chunk = event.data;
 
         if (chunk === '[END]') {
@@ -249,12 +254,15 @@ export default function InteractiveAvatar() {
         }
 
         if (avatar.current) {
+            console.log("handleSpeak sending text");
           await avatar.current.speak({ text: chunk, task_type: TaskType.REPEAT });
         } else {
+            console.log("Avatar API not initialized during speech");
           setDebug("Avatar API not initialized during speech");
         }
       };
     } catch (e) {
+        console.error(e instanceof Error ? e.message : 'An unknown error occurred');
       setDebug(e instanceof Error ? e.message : 'An unknown error occurred');
     } finally {
       setIsLoadingRepeat(false);
@@ -411,7 +419,7 @@ export default function InteractiveAvatar() {
             if (isUserTalking) return;
 
             // For debugging: download the audio before sending
-            downloadBlob(webmBlob, 'pre_send_audio.webm');
+            //downloadBlob(webmBlob, 'pre_send_audio.webm');
 
             // Create FormData and append the WebM file
             const formData = new FormData();
@@ -430,6 +438,8 @@ export default function InteractiveAvatar() {
                 setText(response.data.text);
                 await handleSpeak();
             }
+            else
+                console.log('not calling handle speak')
         } catch (error) {
             console.error('Error sending audio for transcription:', error);
             setDebug('Error transcribing audio');
@@ -456,7 +466,7 @@ export default function InteractiveAvatar() {
             const blob = new Blob([byteArray], { type: 'audio/webm' });
 
             // For debugging: download the audio after receiving
-            downloadBlob(blob, 'post_send_audio.webm');
+            //downloadBlob(blob, 'post_send_audio.webm');
 
             console.log('Audio file size:', response.audioDataSize, 'bytes');
             if (response.text) {
