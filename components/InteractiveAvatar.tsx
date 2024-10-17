@@ -59,7 +59,7 @@ export default function InteractiveAvatar() {
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-    const MyComponent = () => {
+    /*const MyComponent = () => {
         const vad = useMicVAD ({
             startOnLoad: true,
             onSpeechEnd: (audio) => {
@@ -67,7 +67,7 @@ export default function InteractiveAvatar() {
             },
         })
         return <div>{vad.userSpeaking && "User is speaking"}</div>
-    }
+    }*/
 
   //const [vadInstance, setVadInstance] = useState<MicVAD | null>(null);
 
@@ -184,12 +184,17 @@ export default function InteractiveAvatar() {
 
       setData(res);
 
-       /* const myvad = await useMicVAD .new({
+        const myvad = await useMicVAD .new({
+            onSpeechStart: (audio) => {
+                console.log("VAD speech start")
+                // do something with `audio` (Float32Array of audio samples at sample rate 16000)...
+            },
             onSpeechEnd: (audio) => {
+                console.log("VAD speech end")
                 // do something with `audio` (Float32Array of audio samples at sample rate 16000)...
             },
         })
-        myvad.start()*/
+        myvad.start()
     } catch (error) {
       console.error("Error starting avatar session or VAD:", error);
     } finally {
