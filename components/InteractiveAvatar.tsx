@@ -403,39 +403,38 @@ export default function InteractiveAvatar() {
         console.log(`Downloaded ${filename}`);
     };
 
-  const sendAudioForTranscription = async (audio: Float32Array) => {
-    try {
-      // Convert Float32Array to WebM format
-      const webmBlob = await float32ArrayToWebM(audio, 16000);
+    const sendAudioForTranscription = async (audio: Float32Array) => {
+        try {
+            // Convert Float32Array to WebM format
+            const webmBlob = await float32ArrayToWebM(audio, 16000);
 
-        if (isUserTalking)
-            return;
+            if (isUserTalking) return;
 
-        downloadBlob(webmBlob, 'pre_send_audio.webm');
+            // For debugging: download the audio before sending
+            downloadBlob(webmBlob, 'pre_send_audio.webm');
 
-      // Create FormData and append the WebM file
-      const formData = new FormData();
-      formData.append('file', webmBlob, 'audio.webm');
+            // Create FormData and append the WebM file
+            const formData = new FormData();
+            formData.append('file', webmBlob, 'audio.webm');
 
-        if (isUserTalking)
-          return;
+            if (isUserTalking) return;
 
-      // Send the audio to the server for transcription
-        const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
+            // Send the audio to the server for transcription
+            const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
 
-        handleAudioResponse(response.data);
+            handleAudioResponse(response.data);
 
-        if (!isUserTalking && response.data.text) {
-            setText(response.data.text);
-            await handleSpeak();
+            if (!isUserTalking && response.data.text) {
+                setText(response.data.text);
+                await handleSpeak();
+            }
+        } catch (error) {
+            console.error('Error sending audio for transcription:', error);
+            setDebug('Error transcribing audio');
         }
-    } catch (error) {
-      console.error('Error sending audio for transcription:', error);
-      setDebug('Error transcribing audio');
-    }
-  };
+    };
 
     interface AudioResponse {
         text?: string;
@@ -456,6 +455,7 @@ export default function InteractiveAvatar() {
             const byteArray = new Uint8Array(byteNumbers);
             const blob = new Blob([byteArray], { type: 'audio/webm' });
 
+            // For debugging: download the audio after receiving
             downloadBlob(blob, 'post_send_audio.webm');
 
             console.log('Audio file size:', response.audioDataSize, 'bytes');
