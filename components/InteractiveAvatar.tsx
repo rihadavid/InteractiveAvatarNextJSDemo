@@ -106,7 +106,7 @@ export default function InteractiveAvatar() {
   }
 
   const vad = useMicVAD({
-    onSpeechStart: (audio) => {
+    onSpeechStart: () => {
       console.log("VAD speech start");;
     },
     onSpeechEnd: (audio) => {
