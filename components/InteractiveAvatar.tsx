@@ -38,6 +38,8 @@ const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
 export default function InteractiveAvatar() {
+    const customSessionIdRef = useRef(null);
+
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [isLoadingRepeat, setIsLoadingRepeat] = useState(false);
   const [stream, setStream] = useState<MediaStream>();
@@ -54,7 +56,6 @@ export default function InteractiveAvatar() {
   const [isUserTalking, setIsUserTalking] = useState(false);
     const [isAvatarTalking, setIsAvatarTalking] = useState(false);
 
-  const [customSessionId, setCustomSessionId] = useState<string | null>(null);
     const [signature, setSignature] = useState<string | null>(null);
   const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
 
@@ -90,7 +91,8 @@ export default function InteractiveAvatar() {
           }
 
           console.log("Setting custom_session_id to: " + custom_session_id)
-          setCustomSessionId(custom_session_id);
+
+          customSessionIdRef.current = custom_session_id;
       }catch(e){
           console.error('Error set custom_session_id:', e);
       }
@@ -232,7 +234,7 @@ export default function InteractiveAvatar() {
       return;
     }
 
-    if (!customSessionId) {
+    if (!customSessionIdRef.current) {
         console.log("Custom session ID not available");
       setDebug("Custom session ID not available");
       return;
@@ -248,7 +250,7 @@ export default function InteractiveAvatar() {
       wsConnection.send(JSON.stringify({
         action: 'MESSAGE',
         message: text,
-        custom_session_id: customSessionId
+        custom_session_id: customSessionIdRef.current
       }));
 
       wsConnection.onmessage = async (event) => {
