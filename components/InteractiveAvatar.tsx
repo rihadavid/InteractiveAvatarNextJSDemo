@@ -32,6 +32,8 @@ import { useMicVAD  } from "@ricky0123/vad-react";
 
 import * as ort from 'onnxruntime-web';
 
+import axios from 'axios';
+
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
@@ -109,8 +111,9 @@ export default function InteractiveAvatar() {
     onSpeechStart: () => {
       console.log("VAD speech start");;
     },
-    onSpeechEnd: (audio) => {
+    onSpeechEnd: async (audio) => {
       console.log("VAD speech end");
+      await sendAudioForTranscription(audio);
     },
   });
 
@@ -372,6 +375,69 @@ export default function InteractiveAvatar() {
     }
     initOnnx();
   }, []);
+
+  const sendAudioForTranscription = async (audio: Float32Array) => {
+    try {
+      // Convert Float32Array to WebM format
+      const webmBlob = await float32ArrayToWebM(audio, 16000);
+
+      // Create FormData and append the WebM file
+      const formData = new FormData();
+      formData.append('file', webmBlob, 'audio.webm');
+
+      // Send the audio to the server for transcription
+      const response = await axios.post('/api/transcribe-audio', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const transcribedText = response.data.text;
+      console.log('Transcribed text:', transcribedText);
+
+      // Set the transcribed text and trigger the speak function
+      setText(transcribedText);
+      await handleSpeak();
+    } catch (error) {
+      console.error('Error sending audio for transcription:', error);
+      setDebug('Error transcribing audio');
+    }
+  };
+
+  // Helper function to convert Float32Array to WebM
+  const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
+      audioBuffer.getChannelData(0).set(samples);
+
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+
+      const destination = audioContext.createMediaStreamDestination();
+      source.connect(destination);
+
+      const mediaRecorder = new MediaRecorder(destination.stream, { mimeType: 'audio/webm' });
+      const chunks: Blob[] = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const webmBlob = new Blob(chunks, { type: 'audio/webm' });
+        resolve(webmBlob);
+      };
+
+      source.start(0);
+      mediaRecorder.start();
+
+      setTimeout(() => {
+        mediaRecorder.stop();
+        source.stop();
+      }, (samples.length / sampleRate) * 1000);
+    });
+  };
 
   return (
     <div className="w-full flex flex-col gap-4">

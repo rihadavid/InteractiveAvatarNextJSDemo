@@ -9,6 +9,7 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
+    "axios":"latest",
     "copy-webpack-plugin": "latest",
     "onnxruntime-web": "1.14.0",
     "@ricky0123/vad-react": "0.0.7",
