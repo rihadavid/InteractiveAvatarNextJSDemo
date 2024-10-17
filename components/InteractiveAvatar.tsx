@@ -177,7 +177,7 @@ export default function InteractiveAvatar() {
         setIsAvatarTalking(false);
     };
 
-      const userStartTalkCallback = (e: any) => {
+      const userStartTalkCallback = async (e: any) => {
           console.log("User started talking", e);
           setIsUserTalking(true);
 
