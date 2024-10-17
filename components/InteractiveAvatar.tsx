@@ -2,8 +2,6 @@
 
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
 
-import { runVad } from "./vad_microphone.mjs"
-
 import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents, TaskType, VoiceEmotion,
