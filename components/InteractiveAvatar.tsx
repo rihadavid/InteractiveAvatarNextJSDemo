@@ -105,6 +105,15 @@ export default function InteractiveAvatar() {
     return "";
   }
 
+  const vad = useMicVAD({
+    onSpeechStart: (audio) => {
+      console.log("VAD speech start");;
+    },
+    onSpeechEnd: (audio) => {
+      console.log("VAD speech end");
+    },
+  });
+
   async function startSession() {
     setIsLoadingSession(true);
     const newToken = await fetchAccessToken();
@@ -183,20 +192,9 @@ export default function InteractiveAvatar() {
       });
 
       setData(res);
-
-        const myvad = useMicVAD({
-            onSpeechStart: (audio) => {
-                console.log("VAD speech start")
-                // do something with `audio` (Float32Array of audio samples at sample rate 16000)...
-            },
-            onSpeechEnd: (audio) => {
-                console.log("VAD speech end")
-                // do something with `audio` (Float32Array of audio samples at sample rate 16000)...
-            },
-        });
-        //myvad.start()
+      vad.start(); // Start VAD when the session starts
     } catch (error) {
-      console.error("Error starting avatar session or VAD:", error);
+      console.error("Error starting avatar session:", error);
     } finally {
       setIsLoadingSession(false);
     }
@@ -264,10 +262,7 @@ export default function InteractiveAvatar() {
       wsConnection.close();
       setWsConnection(null);
     }
-    /*if (vadInstance) {
-      await vadInstance.pause();
-      setVadInstance(null);
-    }*/
+    vad.pause(); // Stop VAD when ending the session
   }
 
   const handleChangeChatMode = useMemoizedFn(async (v) => {
