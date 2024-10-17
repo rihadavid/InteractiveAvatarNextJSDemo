@@ -108,10 +108,24 @@ export default function InteractiveAvatar() {
   }
 
   const vad = useMicVAD({
-    onSpeechStart: () => {
-      console.log("VAD speech start");;
+    onSpeechStart: async () => {
+      console.log("VAD speech start");
+        setIsUserTalking(true);
+
+      if (isAvatarTalking) {
+          let interruptAvatarTask = avatar.current.interrupt();
+          let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
+              method: 'GET',
+          }).catch(error => {
+              console.error('Error reporting interruption:', error);
+          });
+          setIsAvatarTalking(false);
+          await interruptTask;
+          await interruptAvatarTask;
+      }
     },
     onSpeechEnd: async (audio) => {
+        setIsUserTalking(false);
       console.log("VAD speech end");
       await sendAudioForTranscription(audio);
     },
@@ -160,7 +174,7 @@ export default function InteractiveAvatar() {
     });
     avatar.current?.on(StreamingEvents.USER_START, async (event) => {
       console.log(">>>>> User started talking:", event);
-      setIsUserTalking(true);
+      //setIsUserTalking(true);
 
       if (isAvatarTalking) {
         let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
@@ -177,7 +191,7 @@ export default function InteractiveAvatar() {
     });
     avatar.current?.on(StreamingEvents.USER_STOP, async (event) => {
       console.log(">>>>> User stopped talking:", event);
-      setIsUserTalking(false);
+      //setIsUserTalking(false);
 
       // Stop recording and transcribe when user stops talking
       await stopRecording();
@@ -381,9 +395,15 @@ export default function InteractiveAvatar() {
       // Convert Float32Array to WebM format
       const webmBlob = await float32ArrayToWebM(audio, 16000);
 
+        if (isUserTalking)
+            return;
+
       // Create FormData and append the WebM file
       const formData = new FormData();
       formData.append('file', webmBlob, 'audio.webm');
+
+        if (isUserTalking)
+          return;
 
       // Send the audio to the server for transcription
       const response = await axios.post('/api/transcribe-audio', formData, {
@@ -394,8 +414,11 @@ export default function InteractiveAvatar() {
       console.log('Transcribed text:', transcribedText);
 
       // Set the transcribed text and trigger the speak function
-      setText(transcribedText);
-      await handleSpeak();
+
+        if (!isUserTalking) {
+            setText(transcribedText);
+            await handleSpeak();
+        }
     } catch (error) {
       console.error('Error sending audio for transcription:', error);
       setDebug('Error transcribing audio');
