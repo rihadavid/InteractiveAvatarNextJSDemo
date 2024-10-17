@@ -439,7 +439,7 @@ export default function InteractiveAvatar() {
       const destination = audioContext.createMediaStreamDestination();
       source.connect(destination);
 
-      const mediaRecorder = new MediaRecorder(destination.stream, { mimeType: 'audio/webm' });
+      const mediaRecorder = new MediaRecorder(destination.stream, { mimeType: 'audio/webm;codecs=opus' });
       const chunks: Blob[] = [];
 
       mediaRecorder.ondataavailable = (event) => {
