@@ -9,9 +9,8 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
-    "fs": "latest",
-    "naudiodon2":"latest",
-    "sherpa-onnx-node": "latest",
+    "onnxruntime-web": "1.14.0",
+    "vad-web": "0.0.7",
     "@ai-sdk/openai": "^0.0.63",
     "@heygen/streaming-avatar": "^2.0.6",
     "@nextui-org/button": "2.0.34",

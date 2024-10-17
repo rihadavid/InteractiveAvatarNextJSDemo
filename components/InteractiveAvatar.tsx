@@ -30,6 +30,8 @@ import InteractiveAvatarTextInput from "./InteractiveAvatarTextInput";
 
 import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 
+import { MicVAD } from "@ricky0123/vad-web";
+
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
@@ -56,6 +58,8 @@ export default function InteractiveAvatar() {
 
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  const [vadInstance, setVadInstance] = useState<any>(null);
 
   // Use useEffect to access search params after component mount
   useEffect(() => {
@@ -170,12 +174,31 @@ export default function InteractiveAvatar() {
 
       setData(res);
 
-      runVad();
-      // default to voice mode
-      //await avatar.current?.startVoiceChat();
-      //setChatMode("voice_mode");
+      // Initialize and start VAD
+      const myvad = await MicVAD.new({
+        onSpeechStart: () => {
+          console.log("Speech start detected");
+          setIsUserTalking(true);
+          startRecording();
+        },
+        onSpeechEnd: async (audio) => {
+          console.log("Speech end detected");
+          setIsUserTalking(false);
+          await stopRecording();
+          // You can use the `audio` parameter (Float32Array) if needed
+        },
+        onVADMisfire: () => {
+          console.log("VAD misfire");
+          setIsUserTalking(false);
+          stopRecording();
+        }
+      });
+
+      await myvad.start();
+      setVadInstance(myvad);
+
     } catch (error) {
-      console.error("Error starting avatar session:", error);
+      console.error("Error starting avatar session or VAD:", error);
     } finally {
       setIsLoadingSession(false);
     }
@@ -242,6 +265,10 @@ export default function InteractiveAvatar() {
     if (wsConnection) {
       wsConnection.close();
       setWsConnection(null);
+    }
+    if (vadInstance) {
+      await vadInstance.pause();
+      setVadInstance(null);
     }
   }
 
