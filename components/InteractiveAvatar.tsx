@@ -391,6 +391,18 @@ export default function InteractiveAvatar() {
     initOnnx();
   }, []);
 
+    const downloadBlob = (blob: Blob, filename: string) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        console.log(`Downloaded ${filename}`);
+    };
+
   const sendAudioForTranscription = async (audio: Float32Array) => {
     try {
       // Convert Float32Array to WebM format
@@ -398,6 +410,8 @@ export default function InteractiveAvatar() {
 
         if (isUserTalking)
             return;
+
+        downloadBlob(webmBlob, 'pre_send_audio.webm');
 
       // Create FormData and append the WebM file
       const formData = new FormData();
@@ -442,15 +456,7 @@ export default function InteractiveAvatar() {
             const byteArray = new Uint8Array(byteNumbers);
             const blob = new Blob([byteArray], { type: 'audio/webm' });
 
-            // Create download link
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'debug_audio.webm';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            downloadBlob(blob, 'post_send_audio.webm');
 
             console.log('Audio file size:', response.audioDataSize, 'bytes');
             if (response.text) {
@@ -465,41 +471,41 @@ export default function InteractiveAvatar() {
     };
 
   // Helper function to convert Float32Array to WebM
-  const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
-    return new Promise((resolve) => {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
-      audioBuffer.getChannelData(0).set(samples);
+    const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+        return new Promise((resolve) => {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
+            audioBuffer.getChannelData(0).set(samples);
 
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
 
-      const destination = audioContext.createMediaStreamDestination();
-      source.connect(destination);
+            const destination = audioContext.createMediaStreamDestination();
+            source.connect(destination);
 
-      const mediaRecorder = new MediaRecorder(destination.stream, { mimeType: 'audio/webm;codecs=opus' });
-      const chunks: Blob[] = [];
+            const mediaRecorder = new MediaRecorder(destination.stream, { mimeType: 'audio/webm;codecs=opus' });
+            const chunks: Blob[] = [];
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    chunks.push(event.data);
+                }
+            };
 
-      mediaRecorder.onstop = () => {
-        const webmBlob = new Blob(chunks, { type: 'audio/webm' });
-        resolve(webmBlob);
-      };
+            mediaRecorder.onstop = () => {
+                const webmBlob = new Blob(chunks, { type: 'audio/webm' });
+                resolve(webmBlob);
+            };
 
-      source.start(0);
-      mediaRecorder.start();
+            source.start(0);
+            mediaRecorder.start();
 
-      setTimeout(() => {
-        mediaRecorder.stop();
-        source.stop();
-      }, (samples.length / sampleRate) * 1000);
-    });
-  };
+            setTimeout(() => {
+                mediaRecorder.stop();
+                source.stop();
+            }, (samples.length / sampleRate) * 1000);
+        });
+    };
 
   return (
     <div className="w-full flex flex-col gap-4">
