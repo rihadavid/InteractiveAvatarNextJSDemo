@@ -38,7 +38,7 @@ const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
 export default function InteractiveAvatar() {
-    const customSessionIdRef = useRef(null);
+    const customSessionIdRef = useRef<string | null>(null);
 
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [isLoadingRepeat, setIsLoadingRepeat] = useState(false);
