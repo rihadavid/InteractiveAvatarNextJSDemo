@@ -265,7 +265,7 @@ export default function InteractiveAvatar() {
               }
 
               if (avatar.current) {
-                  await avatar.current.speak({ taskRequest: { text: chunk, task_type: 'repeat' }});
+                  await avatar.current.speak({ taskRequest: { text: chunk, taskType: 'repeat' }});
               } else {
                   setDebug("Avatar API not initialized during speech");
               }
