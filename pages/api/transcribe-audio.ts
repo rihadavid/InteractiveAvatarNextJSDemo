@@ -1,8 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
+
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -23,10 +26,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const data: Buffer[] = [];
-        for await (const chunk of req) {
+        req.on('data', (chunk: Buffer) => {
             data.push(chunk);
-        }
+        });
+
+        await new Promise((resolve) => req.on('end', resolve));
+
         const buffer = Buffer.concat(data);
+
+        console.log('Received data size:', buffer.length, 'bytes');
 
         const boundary = contentType.split('boundary=')[1];
         if (!boundary) {
@@ -47,25 +55,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: 'No audio file found in request' });
         }
 
-        // Write the buffer to a temporary file
-        const tempDir = os.tmpdir();
-        const tempFilePath = path.join(tempDir, 'audio.webm');
-        await fs.promises.writeFile(tempFilePath, audioData);
+        console.log('Extracted audio data size:', audioData.length, 'bytes');
 
-        const transcription = await openai.audio.transcriptions.create({
-            file: fs.createReadStream(tempFilePath),
-            model: "whisper-1",
-            response_format: 'verbose_json'
-        });
+        try {
+            const transcription = await openai.audio.transcriptions.create({
+                file: new File([audioData], 'audio.webm', { type: 'audio/webm' }),
+                model: "whisper-1",
+                response_format: 'verbose_json'
+            });
 
-        // Clean up the temporary file
-        await fs.promises.unlink(tempFilePath);
+            console.log('Transcription successful');
+            res.status(200).json({
+                text: transcription.text,
+                audioDataSize: audioData.length,
+                audioData: audioData.toString('base64')
+            });
+        } catch (transcriptionError) {
+            console.error('Transcription error:', transcriptionError);
+            res.status(500).json({
+                error: 'Error transcribing audio',
+                details: transcriptionError instanceof Error ? transcriptionError.message : 'Unknown error',
+                audioDataSize: audioData.length,
+                audioData: audioData.toString('base64')
+            });
+        }
 
-        res.status(200).json({ text: transcription.text });
     } catch (error) {
-        console.error('Error transcribing audio:', error);
+        console.error('Error processing request:', error);
         if (error instanceof Error) {
-            res.status(500).json({ error: 'Error transcribing audio', details: error.message });
+            res.status(500).json({ error: 'Error processing request', details: error.message });
         } else {
             res.status(500).json({ error: 'An unknown error occurred' });
         }

@@ -407,17 +407,14 @@ export default function InteractiveAvatar() {
           return;
 
       // Send the audio to the server for transcription
-      const response = await axios.post('/api/transcribe-audio', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+        const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
 
-      const transcribedText = response.data.text;
-      console.log('Transcribed text:', transcribedText);
+        handleAudioResponse(response.data);
 
-      // Set the transcribed text and trigger the speak function
-
-        if (!isUserTalking) {
-            setText(transcribedText);
+        if (!isUserTalking && response.data.text) {
+            setText(response.data.text);
             await handleSpeak();
         }
     } catch (error) {
@@ -425,6 +422,47 @@ export default function InteractiveAvatar() {
       setDebug('Error transcribing audio');
     }
   };
+
+    interface AudioResponse {
+        text?: string;
+        audioDataSize: number;
+        audioData: string;
+        error?: string;
+        details?: string;
+    }
+
+    const handleAudioResponse = (response: AudioResponse) => {
+        if (response.audioData) {
+            // Convert base64 to Blob
+            const byteCharacters = atob(response.audioData);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'audio/webm' });
+
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'debug_audio.webm';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            console.log('Audio file size:', response.audioDataSize, 'bytes');
+            if (response.text) {
+                console.log('Transcribed text:', response.text);
+            }
+            if (response.error) {
+                console.error('Error:', response.error, 'Details:', response.details);
+            }
+        } else {
+            console.log('No audio data received');
+        }
+    };
 
   // Helper function to convert Float32Array to WebM
   const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
