@@ -1,14 +1,3 @@
-// Add this type declaration at the top of your file
-declare module 'formidable' {
-    export class IncomingForm {
-        parse(req: any, callback: (err: any, fields: any, files: any) => void): void;
-        keepExtensions: boolean;
-    }
-    export interface File {
-        filepath: string;
-    }
-}
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import formidable from 'formidable';
@@ -19,6 +8,10 @@ export const config = {
         bodyParser: false,
     },
 };
+
+interface FormidableFile {
+    filepath: string;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -33,18 +26,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const openai = new OpenAI({ apiKey: whisperApiKey });
 
-        const form = new formidable.IncomingForm();
-        form.keepExtensions = true;
+        const form = formidable({ keepExtensions: true }) as unknown as {
+            parse(req: NextApiRequest): Promise<[fields: formidable.Fields, files: formidable.Files]>;
+        };
 
-        const [fields, files] = await new Promise<[any, any]>((resolve, reject) => {
-            form.parse(req, (err, fields, files) => {
-                if (err) reject(err);
-                else resolve([fields, files]);
-            });
-        });
+        const [fields, files] = await form.parse(req);
 
-        const file = files.file as formidable.File;
-        if (!file) {
+        const file = files.file as unknown as FormidableFile;
+        if (!file || !file.filepath) {
             return res.status(400).json({ error: 'No audio file found in request' });
         }
 
