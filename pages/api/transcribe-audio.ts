@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import axios from 'axios';
-import FormData from "form-data";
+import { Readable } from 'stream';
+import OpenAI from 'openai';
 
 export const config = {
     api: {
@@ -19,6 +19,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(500).json({ error: 'OpenAI API key not configured' });
         }
 
+        const openai = new OpenAI({ apiKey: openaiApiKey });
+
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
             return res.status(400).json({ error: 'Invalid content type' });
@@ -31,6 +33,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const buffer = Buffer.concat(data);
 
         const boundary = contentType.split('boundary=')[1];
+        if (!boundary) {
+            return res.status(400).json({ error: 'Invalid boundary in content type' });
+        }
         const parts = buffer.toString().split(`--${boundary}`);
         let audioData: Buffer | null = null;
 
@@ -46,24 +51,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: 'No audio file found in request' });
         }
 
-        const formData = new FormData();
-        formData.append('model', 'whisper-1');
-        formData.append('response_format', 'verbose_json');
-        formData.append('file', audioData, { filename: 'audio.webm', contentType: 'audio/webm' });
+        // Create a readable stream from the buffer
+        const audioStream = new Readable();
+        audioStream.push(audioData);
+        audioStream.push(null);
 
-        const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
-            headers: {
-                ...formData.getHeaders(),
-                'Authorization': `Bearer ${openaiApiKey}`,
-            }
+        const transcription = await openai.audio.transcriptions.create({
+            file: audioStream,
+            model: "whisper-1",
         });
 
-        const transcribedText = response.data.text;
-        const duration = response.data.duration;
-
-        res.status(200).json({ text: transcribedText, duration });
+        res.status(200).json({ text: transcription.text });
     } catch (error) {
         console.error('Error transcribing audio:', error);
-        res.status(500).json({ error: 'Error transcribing audio' });
+        if (error instanceof Error) {
+            res.status(500).json({ error: 'Error transcribing audio', details: error.message });
+        } else {
+            res.status(500).json({ error: 'An unknown error occurred' });
+        }
     }
 }
