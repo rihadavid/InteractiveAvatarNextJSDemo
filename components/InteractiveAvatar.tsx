@@ -225,7 +225,10 @@ export default function InteractiveAvatar() {
       setIsLoadingSession(false);
     }
   }
-  async function handleSpeak() {
+    function handleSpeakk(){
+      return;
+    }
+  async function handleSpeak(speakText: string) {
       console.log("Handle speak invoked");
     setIsLoadingRepeat(true);
     if (!avatar.current) {
@@ -249,7 +252,7 @@ export default function InteractiveAvatar() {
     try {
         wsConnectionRef.current.send(JSON.stringify({
         action: 'MESSAGE',
-        message: text,
+        message: speakText,
         custom_session_id: customSessionIdRef.current
       }));
 
@@ -385,9 +388,8 @@ export default function InteractiveAvatar() {
       }
 
       const data = await response.json();
-      setText(data.text);
       // Automatically trigger the handleSpeak function
-      await handleSpeak();
+      await handleSpeak(data.text);
     } catch (error) {
       console.error("Error transcribing audio:", error);
       setDebug("Error transcribing audio");
@@ -444,7 +446,7 @@ export default function InteractiveAvatar() {
 
             if (!isUserTalking && response.data.text) {
                 setText(response.data.text);
-                await handleSpeak();
+                //await handleSpeak();
             }
             else
                 console.log('not calling handle speak')
@@ -647,7 +649,7 @@ export default function InteractiveAvatar() {
                 loading={isLoadingRepeat}
                 placeholder="Type something for the avatar to respond"
                 setInput={setText}
-                onSubmit={handleSpeak}
+                onSubmit={handleSpeakk}
               />
               {text && (
                 <Chip className="absolute right-16 top-3">Listening</Chip>
