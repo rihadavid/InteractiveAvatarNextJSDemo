@@ -389,7 +389,7 @@ export default function InteractiveAvatar() {
 
       const data = await response.json();
       // Automatically trigger the handleSpeak function
-      await handleSpeak(data.text);
+      //await handleSpeak();
     } catch (error) {
       console.error("Error transcribing audio:", error);
       setDebug("Error transcribing audio");
@@ -445,8 +445,8 @@ export default function InteractiveAvatar() {
             handleAudioResponse(response.data);
 
             if (!isUserTalking && response.data.text) {
-                setText(response.data.text);
-                //await handleSpeak();
+                //setText(response.data.text);
+                await handleSpeak(response.data.text);
             }
             else
                 console.log('not calling handle speak')
