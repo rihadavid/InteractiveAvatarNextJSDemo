@@ -9,7 +9,8 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
-    "formidable-serverless": "latest",
+    "@types/formidable": "latest",
+    "formidable": "latest",
     "axios":"latest",
     "form-data":"latest",
     "copy-webpack-plugin": "latest",

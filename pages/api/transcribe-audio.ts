@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
-import formidable from 'formidable-serverless';
+import formidable from 'formidable';
 import fs from 'fs';
 
 export const config = {
@@ -22,9 +22,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const openai = new OpenAI({ apiKey: whisperApiKey });
 
-        const form = new formidable.IncomingForm({
+        const form = formidable({
             keepExtensions: true,
-            multiples: false,
+            maxFileSize: 25 * 1024 * 1024, // 25MB
         });
 
         const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>((resolve, reject) => {
@@ -39,11 +39,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ error: 'No audio file found in request' });
         }
 
-        console.log('Received file size:', fs.statSync(file.path).size, 'bytes');
+        console.log('Received file size:', fs.statSync(file.filepath).size, 'bytes');
 
         try {
             const transcription = await openai.audio.transcriptions.create({
-                file: fs.createReadStream(file.path),
+                file: fs.createReadStream(file.filepath),
                 model: "whisper-1",
                 response_format: 'verbose_json'
             });
@@ -51,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.log('Transcription successful');
 
             // Read the file content to send back to the client
-            const audioData = fs.readFileSync(file.path);
+            const audioData = fs.readFileSync(file.filepath);
 
             res.status(200).json({
                 text: transcription.text,
@@ -60,13 +60,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
 
             // Clean up the temporary file
-            fs.unlinkSync(file.path);
+            fs.unlinkSync(file.filepath);
 
         } catch (transcriptionError) {
             console.error('Transcription error:', transcriptionError);
 
             // Read the file content to send back to the client even if transcription failed
-            const audioData = fs.readFileSync(file.path);
+            const audioData = fs.readFileSync(file.filepath);
 
             res.status(200).json({
                 error: 'Error transcribing audio',
@@ -76,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
 
             // Clean up the temporary file
-            fs.unlinkSync(file.path);
+            fs.unlinkSync(file.filepath);
         }
 
     } catch (error) {
