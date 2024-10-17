@@ -28,7 +28,7 @@ import InteractiveAvatarTextInput from "./InteractiveAvatarTextInput";
 
 import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 
-import { MicVAD } from "@ricky0123/vad-react";
+import { useMicVAD  } from "@ricky0123/vad-react";
 
 import * as ort from 'onnxruntime-web';
 
@@ -60,7 +60,9 @@ export default function InteractiveAvatar() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
     const MyComponent = () => {
-        const vad = MicVAD({
+        const vad = useMicVAD ({
+            modelURL: '/static/chunks/silero_vad.onnx',
+            workletURL: '/static/chunks/vad.worklet.bundle.min.js',
             startOnLoad: true,
             onSpeechEnd: (audio) => {
                 console.log("User stopped talking")
@@ -184,7 +186,7 @@ export default function InteractiveAvatar() {
 
       setData(res);
 
-       /* const myvad = await MicVAD.new({
+       /* const myvad = await useMicVAD .new({
             onSpeechEnd: (audio) => {
                 // do something with `audio` (Float32Array of audio samples at sample rate 16000)...
             },
