@@ -2,6 +2,8 @@
 
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
 
+import VAD from "./vad_microphone.mjs"
+
 import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents, TaskType, VoiceEmotion,
@@ -167,9 +169,11 @@ export default function InteractiveAvatar() {
       });
 
       setData(res);
+
+      VAD.runVad();
       // default to voice mode
-      await avatar.current?.startVoiceChat();
-      setChatMode("voice_mode");
+      //await avatar.current?.startVoiceChat();
+      //setChatMode("voice_mode");
     } catch (error) {
       console.error("Error starting avatar session:", error);
     } finally {
