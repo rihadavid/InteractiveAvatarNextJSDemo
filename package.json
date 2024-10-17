@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "axios":"latest",
+    "formidable":"latest",
     "copy-webpack-plugin": "latest",
     "onnxruntime-web": "1.14.0",
     "@ricky0123/vad-react": "0.0.7",
