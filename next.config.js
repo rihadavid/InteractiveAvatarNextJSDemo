@@ -9,15 +9,15 @@ const nextConfig = {
                 patterns: [
                     {
                         from: "node_modules/@ricky0123/vad-web/dist/vad.worklet.bundle.min.js",
-                        to: path.resolve(__dirname, "public", "vad.worklet.bundle.min.js"),
+                        to: "static/chunks/[name][ext]",
                     },
                     {
                         from: "node_modules/@ricky0123/vad-web/dist/*.onnx",
-                        to: path.resolve(__dirname, "public", "[name][ext]"),
+                        to: "static/chunks/[name][ext]",
                     },
                     {
                         from: "node_modules/onnxruntime-web/dist/*.wasm",
-                        to: path.resolve(__dirname, "public", "[name][ext]")
+                        to: "static/chunks/[name][ext]"
                     },
                 ],
             })
