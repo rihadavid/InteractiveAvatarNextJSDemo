@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const form = formidable({
             keepExtensions: true,
-            maxFileSize: 25 * 1024 * 1024, // 25MB
+            multiples: false, // This ensures we only get one file
         });
 
         const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>((resolve, reject) => {
@@ -34,10 +34,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         });
 
-        const file = files.file as formidable.File;
-        if (!file) {
+        const fileArray = files.file;
+        if (!fileArray || fileArray.length === 0) {
             return res.status(400).json({ error: 'No audio file found in request' });
         }
+
+        const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
 
         console.log('Received file size:', fs.statSync(file.filepath).size, 'bytes');
 
