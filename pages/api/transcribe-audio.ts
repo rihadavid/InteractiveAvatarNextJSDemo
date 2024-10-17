@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 import FormData from "form-data";
-import { Readable } from 'stream';
 
 export const config = {
     api: {
@@ -15,42 +14,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        const chunks: Uint8Array[] = [];
-
-        for await (const chunk of req) {
-            chunks.push(chunk);
-        }
-
-        const buffer = Buffer.concat(chunks);
-
         const openaiApiKey = process.env.WHISPER_API_KEY;
         if (!openaiApiKey) {
             return res.status(500).json({ error: 'OpenAI API key not configured' });
         }
 
-        const form = new FormData();
-        form.append('model', 'whisper-1');
-        form.append('response_format', 'verbose_json');
+        const contentType = req.headers['content-type'];
+        if (!contentType || !contentType.includes('multipart/form-data')) {
+            return res.status(400).json({ error: 'Invalid content type' });
+        }
 
-        // Append the file as a buffer instead of a stream
-        form.append('file', buffer, {
-            filename: 'audio.webm',
-            contentType: 'audio/webm', // Adjust this if your audio format is different
-        });
+        const data: Buffer[] = [];
+        for await (const chunk of req) {
+            data.push(chunk);
+        }
+        const buffer = Buffer.concat(data);
 
-        const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', form, {
+        const boundary = contentType.split('boundary=')[1];
+        const parts = buffer.toString().split(`--${boundary}`);
+        let audioData: Buffer | null = null;
+
+        for (const part of parts) {
+            if (part.includes('name="file"')) {
+                const contentStart = part.indexOf('\r\n\r\n') + 4;
+                audioData = Buffer.from(part.slice(contentStart, -2), 'binary');
+                break;
+            }
+        }
+
+        if (!audioData) {
+            return res.status(400).json({ error: 'No audio file found in request' });
+        }
+
+        const formData = new FormData();
+        formData.append('model', 'whisper-1');
+        formData.append('response_format', 'verbose_json');
+        formData.append('file', audioData, { filename: 'audio.webm', contentType: 'audio/webm' });
+
+        const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
             headers: {
-                ...form.getHeaders(),
+                ...formData.getHeaders(),
                 'Authorization': `Bearer ${openaiApiKey}`,
-            },
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity,
+            }
         });
 
-        const transcribedText = response.data.text ?? response.data;
-        res.status(200).json({ text: transcribedText });
+        const transcribedText = response.data.text;
+        const duration = response.data.duration;
+
+        res.status(200).json({ text: transcribedText, duration });
     } catch (error) {
         console.error('Error transcribing audio:', error);
-        res.status(500).json({ error: 'Error transcribing audio' });
+        if (axios.isAxiosError(error)) {
+            console.error('Response data:', error.response?.data);
+            console.error('Response status:', error.response?.status);
+            console.error('Response headers:', error.response?.headers);
+        }
+        res.status(500).json({ error: 'Error transcribing audio', details: error.message });
     }
 }
