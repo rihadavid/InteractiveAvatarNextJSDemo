@@ -39,6 +39,7 @@ const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
 export default function InteractiveAvatar() {
     const customSessionIdRef = useRef<string | null>(null);
+    const wsConnectionRef = useRef<WebSocket | null>(null);
 
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [isLoadingRepeat, setIsLoadingRepeat] = useState(false);
@@ -57,7 +58,6 @@ export default function InteractiveAvatar() {
     const [isAvatarTalking, setIsAvatarTalking] = useState(false);
 
     const [signature, setSignature] = useState<string | null>(null);
-  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
 
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -152,14 +152,14 @@ export default function InteractiveAvatar() {
     const ws = new WebSocket(wsUrl);
     ws.onopen = () => {
       console.log("WebSocket connection established");
-      setWsConnection(ws);
+        wsConnectionRef.current = ws;
     };
     ws.onerror = (error) => {
       console.error("WebSocket error:", error);
     };
     ws.onclose = () => {
       console.log("WebSocket connection closed");
-      setWsConnection(null);
+        wsConnectionRef.current = null;
     };
 
     avatar.current = new StreamingAvatar({
@@ -240,20 +240,20 @@ export default function InteractiveAvatar() {
       return;
     }
 
-    if (!wsConnection) {
+    if (!wsConnectionRef.current) {
         console.log("WebSocket connection not established");
       setDebug("WebSocket connection not established");
       return;
     }
 
     try {
-      wsConnection.send(JSON.stringify({
+        wsConnectionRef.current.send(JSON.stringify({
         action: 'MESSAGE',
         message: text,
         custom_session_id: customSessionIdRef.current
       }));
 
-      wsConnection.onmessage = async (event) => {
+        wsConnectionRef.current.onmessage = async (event) => {
           console.log("wsConnection.onmessage");
         const chunk = event.data;
 
@@ -292,9 +292,9 @@ export default function InteractiveAvatar() {
   async function endSession() {
     await avatar.current?.stopAvatar();
     setStream(undefined);
-    if (wsConnection) {
-      wsConnection.close();
-      setWsConnection(null);
+    if (wsConnectionRef.current) {
+        wsConnectionRef.current.close();
+        wsConnectionRef.current = null;
     }
     vad.pause(); // Stop VAD when ending the session
   }
@@ -323,11 +323,11 @@ export default function InteractiveAvatar() {
   useEffect(() => {
     return () => {
       endSession();
-      if (wsConnection) {
-        wsConnection.close();
+      if (wsConnectionRef.current) {
+          wsConnectionRef.current.close();
       }
     };
-  }, [wsConnection]);
+  }, []);
 
   useEffect(() => {
     if (stream && mediaStream.current) {
