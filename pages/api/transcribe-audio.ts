@@ -32,12 +32,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         form.append('model', 'whisper-1');
         form.append('response_format', 'verbose_json');
 
-        // Create a Readable stream from the buffer
-        const readableStream = new Readable();
-        readableStream.push(buffer);
-        readableStream.push(null);
-
-        form.append('file', readableStream, {
+        // Append the file as a buffer instead of a stream
+        form.append('file', buffer, {
             filename: 'audio.webm',
             contentType: 'audio/webm', // Adjust this if your audio format is different
         });
@@ -55,6 +51,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(200).json({ text: transcribedText });
     } catch (error) {
         console.error('Error transcribing audio:', error);
-        res.status(500).json({ error: 'Error transcribing audio' });
+        if (axios.isAxiosError(error)) {
+            console.error('Response data:', error.response?.data);
+            console.error('Response status:', error.response?.status);
+            console.error('Response headers:', error.response?.headers);
+        }
+        res.status(500).json({ error: 'Error transcribing audio', details: error.message });
     }
 }
