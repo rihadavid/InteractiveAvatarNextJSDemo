@@ -164,7 +164,7 @@ export default function InteractiveAvatar() {
   async function handleSpeak() {
     setIsLoadingRepeat(true);
     if (!initialized || !avatar.current) {
-      setDebug("Avatar API not initialized");
+      setDebug("Avatar API not initialized");//
       return;
     }
     await avatar.current
