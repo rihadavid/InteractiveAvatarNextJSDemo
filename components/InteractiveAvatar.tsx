@@ -2,7 +2,7 @@
 
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
 
-import VAD from "./vad_microphone.mjs"
+import { runVad } from "./vad_microphone.mjs"
 
 import StreamingAvatar, {
   AvatarQuality,
@@ -170,7 +170,7 @@ export default function InteractiveAvatar() {
 
       setData(res);
 
-      VAD.runVad();
+      runVad();
       // default to voice mode
       //await avatar.current?.startVoiceChat();
       //setChatMode("voice_mode");
