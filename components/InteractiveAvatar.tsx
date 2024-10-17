@@ -61,8 +61,6 @@ export default function InteractiveAvatar() {
 
     const MyComponent = () => {
         const vad = useMicVAD ({
-            modelURL: '/static/chunks/silero_vad.onnx',
-            workletURL: '/static/chunks/vad.worklet.bundle.min.js',
             startOnLoad: true,
             onSpeechEnd: (audio) => {
                 console.log("User stopped talking")
