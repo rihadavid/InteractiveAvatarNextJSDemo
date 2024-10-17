@@ -200,8 +200,8 @@ export default function InteractiveAvatar() {
     console.log("Adding event handlers:", avatar.current);
     avatar.current.addEventHandler("avatar_start_talking", startTalkCallback);
     avatar.current.addEventHandler("avatar_stop_talking", stopTalkCallback);
-      avatar.current.addEventHandler("user_start", userStartTalkCallback);
-      avatar.current.addEventHandler("user_stop", userStopTalkCallback);
+      /*avatar.current.addEventHandler("user_start", userStartTalkCallback);
+      avatar.current.addEventHandler("user_stop", userStopTalkCallback);*/
 
     setInitialized(true);
   }
