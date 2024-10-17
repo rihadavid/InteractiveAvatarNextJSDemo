@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const formData = new FormData();
     formData.append('model', 'whisper-1');
     formData.append('response_format', 'verbose_json');
-    formData.append('file', new Blob([buf]), 'audio.mp4');
+    formData.append('file', new Blob([buf]), 'audio.webm');
 
     console.log('Sending request to OpenAI API...');
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {

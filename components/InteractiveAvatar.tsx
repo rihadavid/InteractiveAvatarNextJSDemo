@@ -285,7 +285,7 @@ export default function InteractiveAvatar() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/mp4',
+        mimeType: 'audio/webm',
       });
       mediaRecorderRef.current = mediaRecorder;
 
@@ -305,7 +305,7 @@ export default function InteractiveAvatar() {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/mp4' });
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
         await transcribeAudio(audioBlob);
         setAudioChunks([]);
       };
@@ -314,7 +314,7 @@ export default function InteractiveAvatar() {
 
   const transcribeAudio = async (audioBlob: Blob) => {
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.mp4');
+    formData.append('file', audioBlob, 'audio.webm');
 
     try {
       const response = await fetch('/api/transcribe', {
