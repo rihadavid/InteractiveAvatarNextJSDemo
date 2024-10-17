@@ -2,6 +2,8 @@
 
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
 
+import { runVad } from "./vad_microphone.mjs"
+
 import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents, TaskType, VoiceEmotion,
@@ -30,6 +32,8 @@ import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 
 import { MicVAD } from "@ricky0123/vad-web";
 
+import * as ort from 'onnxruntime-web';
+
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
@@ -57,7 +61,7 @@ export default function InteractiveAvatar() {
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  const [vadInstance, setVadInstance] = useState<any>(null);
+  const [vadInstance, setVadInstance] = useState<MicVAD | null>(null);
 
   // Use useEffect to access search params after component mount
   useEffect(() => {
@@ -179,11 +183,10 @@ export default function InteractiveAvatar() {
           setIsUserTalking(true);
           startRecording();
         },
-        onSpeechEnd: async (audio) => {
+        onSpeechEnd: async (audio: Float32Array) => {
           console.log("Speech end detected");
           setIsUserTalking(false);
           await stopRecording();
-          // You can use the `audio` parameter (Float32Array) if needed
         },
         onVADMisfire: () => {
           console.log("VAD misfire");
@@ -364,6 +367,19 @@ export default function InteractiveAvatar() {
       setDebug("Error transcribing audio");
     }
   };
+
+  // Add this useEffect hook to initialize onnxruntime-web
+  useEffect(() => {
+    async function initOnnx() {
+      try {
+        await ort.env.wasm.wasmPaths;
+        console.log("ONNX Runtime initialized successfully");
+      } catch (error) {
+        console.error("Error initializing ONNX Runtime:", error);
+      }
+    }
+    initOnnx();
+  }, []);
 
   return (
     <div className="w-full flex flex-col gap-4">
