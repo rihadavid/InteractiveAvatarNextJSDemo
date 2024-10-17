@@ -72,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         } catch (transcriptionError) {
             console.error('Transcription error:', transcriptionError);
-            res.status(500).json({
+            res.status(200).json({
                 error: 'Error transcribing audio',
                 details: transcriptionError instanceof Error ? transcriptionError.message : 'Unknown error',
                 audioDataSize: audioData.length,
