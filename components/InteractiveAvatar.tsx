@@ -113,7 +113,7 @@ export default function InteractiveAvatar() {
         setIsUserTalking(true);
 
       if (isAvatarTalking) {
-          let interruptAvatarTask = avatar.current.interrupt();
+          let interruptAvatarTask = avatar.current ? avatar.current.interrupt() : undefined;
           let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
               method: 'GET',
           }).catch(error => {
@@ -121,7 +121,8 @@ export default function InteractiveAvatar() {
           });
           setIsAvatarTalking(false);
           await interruptTask;
-          await interruptAvatarTask;
+          if (interruptAvatarTask)
+            await interruptAvatarTask;
       }
     },
     onSpeechEnd: async (audio) => {
