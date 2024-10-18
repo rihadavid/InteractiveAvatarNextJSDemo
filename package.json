@@ -9,7 +9,7 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
-    "mp3-encoder-js": "latest",
+    "@ffmpeg/ffmpeg": "latest",
     "@types/formidable": "latest",
     "formidable": "latest",
     "axios":"latest",

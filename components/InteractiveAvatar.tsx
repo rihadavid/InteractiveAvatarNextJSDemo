@@ -33,8 +33,8 @@ import {useMicVAD} from "@ricky0123/vad-react";
 import * as ort from 'onnxruntime-web';
 //import Recorder from 'opus-recorder';
 import axios from 'axios';
-
-import MP3Encoder  from 'mp3-encoder-js';
+import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
+//import * as lamejs from 'lamejs';
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
@@ -555,32 +555,71 @@ export default function InteractiveAvatar() {
         }
     };
 
+    const ffmpeg = createFFmpeg({ log: true });
+
     const float32ArrayToMP3Blob = async (samples: Float32Array, sampleRate: number): Promise<Blob> => {
-        // Convert Float32Array to Int16Array
-        const int16Samples = new Int16Array(samples.length);
-        for (let i = 0; i < samples.length; i++) {
-            const s = Math.max(-1, Math.min(1, samples[i]));
-            int16Samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
-
-        // Create MP3 encoder
-        const encoder = new MP3Encoder(sampleRate, 128);
-
-        // Encode to MP3
-        const mp3Data = encoder.encodeBuffer(int16Samples);
-
-        // Finalize the encoding
-        const finalMp3Data = encoder.finish();
-
-        // Combine all MP3 data
-        const fullMp3Data = new Uint8Array(mp3Data.length + finalMp3Data.length);
-        fullMp3Data.set(mp3Data, 0);
-        fullMp3Data.set(finalMp3Data, mp3Data.length);
-
-        // Create blob
-        return new Blob([fullMp3Data], { type: 'audio/mp3' });
+        if (!ffmpeg.isLoaded()) {
+            await ffmpeg.load();
+          }
+     
+          // Convert Float32Array to WAV Blob
+          const wavBlob = float32ArrayToWAVBlob(samples, sampleRate);
+          const wavArrayBuffer = await wavBlob.arrayBuffer();
+          ffmpeg.FS('writeFile', 'input.wav', new Uint8Array(wavArrayBuffer));
+     
+          // Run FFmpeg command to convert WAV to MP3
+          await ffmpeg.run('-i', 'input.wav', '-codec:a', 'libmp3lame', 'output.mp3');
+     
+          // Get the output file data
+          const data = ffmpeg.FS('readFile', 'output.mp3');
+     
+          // Create a Blob from the output data
+          const mp3Blob = new Blob([data.buffer], { type: 'audio/mp3' });
+     
+          // Clean up files in FFmpeg FS
+          ffmpeg.FS('unlink', 'input.wav');
+          ffmpeg.FS('unlink', 'output.mp3');
+     
+          return mp3Blob;
     };
 
+    function float32ArrayToWAVBlob(samples: Float32Array, sampleRate: number): Blob {
+        const buffer = new ArrayBuffer(44 + samples.length * 2);
+        const view = new DataView(buffer);
+
+        // Write WAV header
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, 36 + samples.length * 2, true);
+        writeString(view, 8, 'WAVE');
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); // PCM format
+        view.setUint16(22, 1, true); // Mono channel
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true); // Byte rate
+        view.setUint16(32, 2, true); // Block align
+        view.setUint16(34, 16, true); // Bits per sample
+        writeString(view, 36, 'data');
+        view.setUint32(40, samples.length * 2, true);
+
+        // Write PCM samples
+        floatTo16BitPCM(view, 44, samples);
+
+        return new Blob([view], { type: 'audio/wav' });
+    }
+
+    function writeString(view: DataView, offset: number, string: string) {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    }
+
+    function floatTo16BitPCM(view: DataView, offset: number, input: Float32Array) {
+        for (let i = 0; i < input.length; i++, offset += 2) {
+            let s = Math.max(-1, Math.min(1, input[i]));
+            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+    }
 
     /*const float32ArrayToOpusOggBlob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
         return new Promise((resolve, reject) => {
