@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const form = formidable({
             keepExtensions: true,
-            multiples: false, // This ensures we only get one file
+            multiples: false,
         });
 
         const [fields, files] = await new Promise<[formidable.Fields<string>, formidable.Files<string>]>((resolve, reject) => {
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         });
 
-        const file = files.file?.[0];  // Access the first file in the 'file' array
+        const file = files.file?.[0];
         if (!file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
@@ -47,8 +47,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Read the file
         const fileBuffer = fs.readFileSync(file.filepath);
 
-        // Parse the audio data as Float32Array
-        const float32Array = new Float32Array(fileBuffer.buffer);
+        // Create Float32Array directly from the buffer
+        const float32Array = new Float32Array(fileBuffer.buffer, fileBuffer.byteOffset, fileBuffer.length / Float32Array.BYTES_PER_ELEMENT);
 
         // Convert Float32Array to WAV
         const wavBuffer = await float32ArrayToWav(float32Array, sampleRate);

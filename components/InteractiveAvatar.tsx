@@ -481,12 +481,16 @@ export default function InteractiveAvatar() {
     const sendAudioForTranscription = async (audio: Float32Array) => {
         try {
             console.log("Sending audio for transcription using language " + language);
+            
+            // Convert Float32Array to Base64 string
+            const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(audio.buffer)));
+            
             const response = await axios.post<AudioResponse>('/api/transcribe-audio', {
-                audio: Array.from(audio), // Convert to regular array for JSON serialization
+                file: base64Audio,
                 language: language,
                 sampleRate: 16000, // Assuming 16kHz sample rate, adjust if different
             }, {
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
 
             handleAudioResponse(response.data);
