@@ -439,7 +439,7 @@ export default function InteractiveAvatar() {
         try {
             console.log("starting float32ArrayToWebM");
             // Convert Float32Array to WebM format
-            const webmBlob = await float32ArrayToWebM(audio, 16000);{
+            const webmBlob = await float32ArrayToWebM(audio, 16000);
                 console.log("finished float32ArrayToWebM");
 
             if (isUserTalking) return;
@@ -468,7 +468,7 @@ export default function InteractiveAvatar() {
                 await handleSpeak(response.data.text);
             }
             else
-                console.log('not calling handle speak')
+                console.log('not calling handle speak');
         } catch (error) {
             console.error('Error sending audio for transcription:', error);
             setDebug('Error transcribing audio');
