@@ -34,6 +34,9 @@ import * as ort from 'onnxruntime-web';
 
 import axios from 'axios';
 
+import OpusMediaRecorder from 'opus-media-recorder';
+import 'opus-media-recorder/encoderWorker.min.js'; // Include the encoder worker
+
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
@@ -51,6 +54,7 @@ export default function InteractiveAvatar() {
 
     const [data, setData] = useState<StartAvatarResponse>();
     const [text, setText] = useState<string>("");
+    const [pendingText, setPendingText] = useState<string>("");
     const mediaStream = useRef<HTMLVideoElement>(null);
     const avatar = useRef<StreamingAvatar | null>(null);
     const [chatMode, setChatMode] = useState("text_mode");
@@ -210,7 +214,7 @@ export default function InteractiveAvatar() {
         try {
             const res = await avatar.current.createStartAvatar({
                 quality: AvatarQuality.Low,
-                avatarName: avatarId,
+                avatarName: 'josh_lite3_20230714',//avatarId,
                 knowledgeId: knowledgeId, // Or use a custom `knowledgeBase`.
                 voice: {
                     rate: 1.5, // 0.5 ~ 1.5
@@ -435,40 +439,82 @@ export default function InteractiveAvatar() {
         console.log(`Downloaded ${filename}`);
     };
 
+    // Helper function to convert Float32Array to Ogg Opus
+    function float32ArrayToOggOpus(samples: Float32Array, sampleRate: number): Promise<Blob> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
+                audioBuffer.getChannelData(0).set(samples);
+
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+
+                const destination = audioContext.createMediaStreamDestination();
+                source.connect(destination);
+
+                const options = {
+                    mimeType: 'audio/ogg; codecs=opus',
+                    audioBitsPerSecond: 16000,
+                    encoderWorkerFactory: OpusMediaRecorder.WorkerFactory,
+                };
+
+                const mediaRecorder = new OpusMediaRecorder(destination.stream, options);
+                const chunks: Blob[] = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        chunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const oggBlob = new Blob(chunks, {type: 'audio/ogg; codecs=opus'});
+                    resolve(oggBlob);
+                };
+
+                mediaRecorder.start();
+                source.start();
+
+                // Stop immediately since we've already buffered the data
+                mediaRecorder.stop();
+                source.stop();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    // Usage in sendAudioForTranscription
     const sendAudioForTranscription = async (audio: Float32Array) => {
         try {
-            console.log("starting float32ArrayToWebM");
-            // Convert Float32Array to WebM format
-            const webmBlob = await float32ArrayToWebM(audio, 16000);
-                console.log("finished float32ArrayToWebM");
+            // Convert Float32Array to Ogg Opus Blob
+            const oggBlob = await float32ArrayToOggOpus(audio, 16000);
 
-            if (isUserTalking) return;
-
-            // For debugging: download the audio before sending
-            //downloadBlob(webmBlob, 'pre_send_audio.webm');
-
-            // Create FormData and append the WebM file and language
+            // Create FormData and append the Ogg Opus file and language
             const formData = new FormData();
-            formData.append('file', webmBlob, 'audio.webm');
-            formData.append('language', language); // Add this line to send the language
-
-            if (isUserTalking) return;
+            formData.append('file', oggBlob, 'audio.ogg');
+            formData.append('language', language);
 
             // Send the audio to the server for transcription
-                console.log("sending for transcription using language " + language);
+            console.log("Sending Ogg Opus audio for transcription using language " + language);
             const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
                 headers: {'Content-Type': 'multipart/form-data'},
             });
-                console.log("received transcription");//
 
             handleAudioResponse(response.data);
 
-            if (!isUserTalking && response.data.text) {
-                //setText(response.data.text);
-                await handleSpeak(response.data.text);
+            if (response.data.text) {
+                if (isUserTalking)
+                    setPendingText((pendingText ? pendingText : "") + response.data.text)
+                else {
+                    let textToSpeak = (pendingText ? pendingText : "") + response.data.text;
+                    setPendingText("");
+                    await handleSpeak(textToSpeak);
+                }
+            } else {
+                console.log('Not calling handleSpeak because no text was transcribed.');
             }
-            else
-                console.log('not calling handle speak');
         } catch (error) {
             console.error('Error sending audio for transcription:', error);
             setDebug('Error transcribing audio');
@@ -509,43 +555,6 @@ export default function InteractiveAvatar() {
         }
     };
 
-    // Helper function to convert Float32Array to WebM
-    const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
-        return new Promise((resolve) => {
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
-            audioBuffer.getChannelData(0).set(samples);
-
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-
-            const destination = audioContext.createMediaStreamDestination();
-            source.connect(destination);
-
-            const mediaRecorder = new MediaRecorder(destination.stream, {mimeType: 'audio/webm;codecs=opus'});
-            const chunks: Blob[] = [];
-
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    chunks.push(event.data);
-                }
-            };
-
-            mediaRecorder.onstop = () => {
-                const webmBlob = new Blob(chunks, {type: 'audio/webm'});
-                resolve(webmBlob);
-            };
-
-            source.start(0);
-            mediaRecorder.start();
-
-            setTimeout(() => {
-                mediaRecorder.stop();
-                source.stop();
-            }, (samples.length / sampleRate) * 1000);
-        });
-    };
-
     const [isOnnxReady, setIsOnnxReady] = useState(false);
 
     return (
@@ -584,22 +593,6 @@ export default function InteractiveAvatar() {
                         <div className="h-full justify-center items-center flex flex-col gap-8 w-[500px] self-center">
                             <div className="flex flex-col gap-2 w-full">
                                 <Select
-                                    placeholder="Select one from these example avatars"
-                                    size="md"
-                                    onChange={(e) => {
-                                        setAvatarId(e.target.value);
-                                    }}
-                                >
-                                    {AVATARS.map((avatar) => (
-                                        <SelectItem
-                                            key={avatar.avatar_id}
-                                            textValue={avatar.avatar_id}
-                                        >
-                                            {avatar.name}
-                                        </SelectItem>
-                                    ))}
-                                </Select>
-                                <Select
                                     label="Select language"
                                     placeholder="Select language"
                                     className="max-w-xs"
@@ -629,45 +622,6 @@ export default function InteractiveAvatar() {
                     )}
                 </CardBody>
                 <Divider/>
-                <CardFooter className="flex flex-col gap-3 relative">
-                    <Tabs
-                        aria-label="Options"
-                        selectedKey={chatMode}
-                        onSelectionChange={(v) => {
-                            handleChangeChatMode(v);
-                        }}
-                    >
-                        <Tab key="text_mode" title="Text mode"/>
-                        <Tab key="voice_mode" title="Voice mode"/>
-                    </Tabs>
-                    {chatMode === "text_mode" ? (
-                        <div className="w-full flex relative">
-                            <InteractiveAvatarTextInput
-                                disabled={!stream}
-                                input={text}
-                                label="Chat"
-                                loading={isLoadingRepeat}
-                                placeholder="Type something for the avatar to respond"
-                                setInput={setText}
-                                onSubmit={handleSpeakk}
-                            />
-                            {text && (
-                                <Chip className="absolute right-16 top-3">Listening</Chip>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="w-full text-center">
-                            <Button
-                                isDisabled={!isUserTalking}
-                                className="bg-gradient-to-tr from-indigo-500 to-indigo-300 text-white"
-                                size="md"
-                                variant="shadow"
-                            >
-                                {isUserTalking ? "Listening" : "Voice chat"}
-                            </Button>
-                        </div>
-                    )}
-                </CardFooter>
             </Card>
         </div>
     );
