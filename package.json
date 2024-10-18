@@ -9,7 +9,7 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
-    "libopus": "latest",
+    "@opuscl/opus-cli": "latest",
     "@types/formidable": "latest",
     "formidable": "latest",
     "axios":"latest",

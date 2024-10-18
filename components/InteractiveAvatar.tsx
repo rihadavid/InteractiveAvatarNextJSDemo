@@ -31,7 +31,7 @@ import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 import {useMicVAD} from "@ricky0123/vad-react";
 
 import * as ort from 'onnxruntime-web';
-import { OpusEncoder } from 'libopus';
+import { OpusEncoder } from '@opuscl/opus-cli';
 import axios from 'axios';
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
@@ -555,10 +555,9 @@ export default function InteractiveAvatar() {
 
     const float32ArrayToOpusOggBlob = async (samples: Float32Array, sampleRate: number): Promise<Blob> => {
         // Initialize the encoder
-        await OpusEncoder.init();
-        const encoder = new OpusEncoder({
+        const encoder = await OpusEncoder.create({
             channels: 1,
-            sample_rate: sampleRate,
+            sampleRate: sampleRate,
             application: 'audio'
         });
 
@@ -569,7 +568,7 @@ export default function InteractiveAvatar() {
         }
 
         // Encode to Opus
-        const opusData = encoder.encode(int16Samples);
+        const opusData = await encoder.encode(int16Samples);
 
         // Create a minimal OGG container
         const oggHeader = new Uint8Array([

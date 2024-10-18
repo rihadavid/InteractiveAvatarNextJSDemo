@@ -24,7 +24,7 @@ const nextConfig = {
                         to: "static/chunks/[name][ext]"
                     },
                     {
-                        from: "node_modules/libopus/dist/libopus.wasm",
+                        from: "node_modules/@opuscl/opus-cli/dist/opus-cli.wasm",
                         to: "static/chunks/[name][ext]"
                     },
                 ],
