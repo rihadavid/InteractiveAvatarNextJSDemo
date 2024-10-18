@@ -47,7 +47,7 @@ export default function InteractiveAvatar() {
     const [debug, setDebug] = useState<string>();
     const [knowledgeId, setKnowledgeId] = useState<string>("");
     const [avatarId, setAvatarId] = useState<string>("");
-    const [language, setLanguage] = useState<string>('en');
+    const languageRef = useRef<string>('en');
 
     const [data, setData] = useState<StartAvatarResponse>();
     const [text, setText] = useState<string>("");
@@ -216,7 +216,7 @@ export default function InteractiveAvatar() {
                     rate: 1.5, // 0.5 ~ 1.5
                     emotion: VoiceEmotion.EXCITED,
                 },
-                language: language,
+                language: languageRef.current,
             });
 
             setData(res);
@@ -450,12 +450,12 @@ export default function InteractiveAvatar() {
             // Create FormData and append the WebM file and language
             const formData = new FormData();
             formData.append('file', webmBlob, 'audio.webm');
-            formData.append('language', language); // Add this line to send the language
+            formData.append('language', languageRef.current); // Add this line to send the language
 
             if (isUserTalking) return;
 
             // Send the audio to the server for transcription
-                console.log("sending for transcription using language " + language);
+                console.log("sending for transcription using language " + languageRef.current);
             const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
                 headers: {'Content-Type': 'multipart/form-data'},
             });
@@ -603,9 +603,9 @@ export default function InteractiveAvatar() {
                                     label="Select language"
                                     placeholder="Select language"
                                     className="max-w-xs"
-                                    selectedKeys={[language]}
+                                    selectedKeys={languageRef.current ? [languageRef.current] : []}
                                     onChange={(e) => {
-                                        setLanguage(e.target.value);
+                                        languageRef.current = e.target.value;
                                     }}
                                 >
                                     {STT_LANGUAGE_LIST.map((lang) => (
