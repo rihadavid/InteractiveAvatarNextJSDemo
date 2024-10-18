@@ -139,6 +139,10 @@ export default function InteractiveAvatar() {
             setIsUserTalking(false);
             await sendAudioForTranscription(audio);
         },
+        onVADMisfire: async () => {
+        console.log("VAD speech misfire");
+        setIsUserTalking(false);
+    },
     });
 
     async function startSession() {
