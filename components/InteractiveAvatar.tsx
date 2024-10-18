@@ -166,11 +166,11 @@ export default function InteractiveAvatar() {
             token: newToken,
         });
         avatar.current.on(StreamingEvents.AVATAR_START_TALKING, (e) => {
-            console.log("Avatar started talking", e);
+            //console.log("Avatar started talking", e);
             setIsAvatarTalking(true);
         });
         avatar.current.on(StreamingEvents.AVATAR_STOP_TALKING, (e) => {
-            console.log("Avatar stopped talking", e);
+            //console.log("Avatar stopped talking", e);
             setIsAvatarTalking(false);
         });
         avatar.current.on(StreamingEvents.STREAM_DISCONNECTED, () => {
@@ -263,15 +263,15 @@ export default function InteractiveAvatar() {
             }));
 
             wsConnectionRef.current.onmessage = async (event) => {
-                console.log("wsConnection.onmessage");
                 const chunk = event.data;
+                console.log("RECEIVED CHUNK:\n" + chunk);
 
                 if (chunk === '[END]') {
                     return;
                 }
 
                 if (avatar.current) {
-                    console.log("handleSpeak sending text");
+                    //console.log("handleSpeak sending text");
                     await avatar.current.speak({text: chunk, task_type: TaskType.REPEAT});
                 } else {
                     console.log("Avatar API not initialized during speech");
@@ -437,8 +437,10 @@ export default function InteractiveAvatar() {
 
     const sendAudioForTranscription = async (audio: Float32Array) => {
         try {
+            console.log("starting float32ArrayToWebM");
             // Convert Float32Array to WebM format
-            const webmBlob = await float32ArrayToWebM(audio, 16000);
+            const webmBlob = await float32ArrayToWebM(audio, 16000);{
+                console.log("finished float32ArrayToWebM");
 
             if (isUserTalking) return;
 
@@ -453,9 +455,11 @@ export default function InteractiveAvatar() {
             if (isUserTalking) return;
 
             // Send the audio to the server for transcription
+                console.log("sending for transcription");
             const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
                 headers: {'Content-Type': 'multipart/form-data'},
             });
+                console.log("received transcription");
 
             handleAudioResponse(response.data);
 
@@ -493,7 +497,7 @@ export default function InteractiveAvatar() {
             // For debugging: download the audio after receiving
             //downloadBlob(blob, 'post_send_audio.webm');
 
-            console.log('Audio file size:', response.audioDataSize, 'bytes');
+            //console.log('Audio file size:', response.audioDataSize, 'bytes');
             if (response.text) {
                 console.log('Transcribed text:', response.text);
             }
