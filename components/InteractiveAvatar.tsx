@@ -273,7 +273,7 @@ export default function InteractiveAvatar() {
                 console.error("Error in avatar speak:", error);
             }
             isSpeaking = false;
-            processQueue();
+            await processQueue();
         }
 
         try {
@@ -293,7 +293,7 @@ export default function InteractiveAvatar() {
 
                 if (avatar.current) {
                     speakQueue.push(chunk);
-                    processQueue();
+                    await processQueue();
                 } else {
                     console.log("Avatar API not initialized during speech");
                     setDebug("Avatar API not initialized during speech");
@@ -495,7 +495,6 @@ export default function InteractiveAvatar() {
             } else {
                 console.log('Not calling handleSpeak because no text was transcribed.');
             }
-                console.log('not calling handle speak');
         } catch (error) {
             console.error('Error sending audio for transcription:', error);
             setDebug('Error transcribing audio');
