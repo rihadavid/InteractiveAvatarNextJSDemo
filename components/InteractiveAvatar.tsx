@@ -120,7 +120,7 @@ export default function InteractiveAvatar() {
       console.log("VAD speech start");
         setIsUserTalking(true);
 
-      if (isAvatarTalking) {
+      //if (isAvatarTalking) {
           let interruptAvatarTask = avatar.current ? avatar.current.interrupt() : undefined;
           console.log("Calling INTERRUPT from onSpeechStart");
           let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
@@ -132,11 +132,11 @@ export default function InteractiveAvatar() {
           await interruptTask;
           if (interruptAvatarTask)
             await interruptAvatarTask;
-      }
+      //}
     },
     onSpeechEnd: async (audio) => {
+        console.log("VAD speech end");
         setIsUserTalking(false);
-      console.log("VAD speech end");
       await sendAudioForTranscription(audio);
     },
   });
@@ -406,6 +406,7 @@ export default function InteractiveAvatar() {
       try {
         await ort.env.wasm.wasmPaths;
         console.log("ONNX Runtime initialized successfully");
+        setIsOnnxReady(true);
       } catch (error) {
         console.error("Error initializing ONNX Runtime:", error);
       }
@@ -531,11 +532,15 @@ export default function InteractiveAvatar() {
         });
     };
 
+  const [isOnnxReady, setIsOnnxReady] = useState(false);
+
   return (
     <div className="w-full flex flex-col gap-4">
       <Card>
         <CardBody className="h-[500px] flex flex-col justify-center items-center">
-          {stream ? (
+          {!isOnnxReady ? (
+            <Spinner color="default" size="lg" />
+          ) : stream ? (
             <div className="h-[500px] w-[900px] justify-center items-center flex rounded-lg overflow-hidden">
               <video
                 ref={mediaStream}
