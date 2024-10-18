@@ -33,7 +33,8 @@ import {useMicVAD} from "@ricky0123/vad-react";
 import * as ort from 'onnxruntime-web';
 //import Recorder from 'opus-recorder';
 import axios from 'axios';
-import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile } from '@ffmpeg/util';
 //import * as lamejs from 'lamejs';
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
@@ -555,33 +556,33 @@ export default function InteractiveAvatar() {
         }
     };
 
-    const ffmpeg = createFFmpeg({ log: true });
+    const ffmpeg = new FFmpeg();
 
-    const float32ArrayToMP3Blob = async (samples: Float32Array, sampleRate: number): Promise<Blob> => {
-        if (!ffmpeg.isLoaded()) {
+    async function float32ArrayToMP3Blob(samples: Float32Array, sampleRate: number): Promise<Blob> {
+        if (!ffmpeg.loaded) {
             await ffmpeg.load();
-          }
-     
-          // Convert Float32Array to WAV Blob
-          const wavBlob = float32ArrayToWAVBlob(samples, sampleRate);
-          const wavArrayBuffer = await wavBlob.arrayBuffer();
-          ffmpeg.FS('writeFile', 'input.wav', new Uint8Array(wavArrayBuffer));
-     
-          // Run FFmpeg command to convert WAV to MP3
-          await ffmpeg.run('-i', 'input.wav', '-codec:a', 'libmp3lame', 'output.mp3');
-     
-          // Get the output file data
-          const data = ffmpeg.FS('readFile', 'output.mp3');
-     
-          // Create a Blob from the output data
-          const mp3Blob = new Blob([data.buffer], { type: 'audio/mp3' });
-     
-          // Clean up files in FFmpeg FS
-          ffmpeg.FS('unlink', 'input.wav');
-          ffmpeg.FS('unlink', 'output.mp3');
-     
-          return mp3Blob;
-    };
+        }
+
+        // Convert Float32Array to WAV Blob
+        const wavBlob = float32ArrayToWAVBlob(samples, sampleRate);
+        const wavArrayBuffer = await wavBlob.arrayBuffer();
+        await ffmpeg.writeFile('input.wav', new Uint8Array(wavArrayBuffer));
+
+        // Run FFmpeg command to convert WAV to MP3
+        await ffmpeg.exec(['-i', 'input.wav', '-codec:a', 'libmp3lame', 'output.mp3']);
+
+        // Get the output file data
+        const data = await ffmpeg.readFile('output.mp3');
+
+        // Create a Blob from the output data
+        const mp3Blob = new Blob([data], { type: 'audio/mp3' });
+
+        // Clean up files in FFmpeg FS
+        await ffmpeg.deleteFile('input.wav');
+        await ffmpeg.deleteFile('output.mp3');
+
+        return mp3Blob;
+    }
 
     function float32ArrayToWAVBlob(samples: Float32Array, sampleRate: number): Blob {
         const buffer = new ArrayBuffer(44 + samples.length * 2);
