@@ -3,7 +3,6 @@ import OpenAI from 'openai';
 import { Readable } from 'stream';
 import formidable from 'formidable';
 import fs from 'fs';
-import type { AudioResponseFormat } from 'openai/resources/audio';
 
 export const config = {
     api: {
@@ -59,21 +58,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         stream.push(null);
 
         try {
-
-            let conf: {
-                file: any;
-                model: string;
-                response_format: AudioResponseFormat;
-                language?: string;
-            } = {
-                file: fs.createReadStream(file.filepath),
+            const conf: OpenAI.Audio.Transcription.TranscriptionCreateParams = {
+                file: stream as any,
                 model: "whisper-1",
-                response_format: 'verbose_json' as AudioResponseFormat
+                response_format: 'json',
+                language: language,
             };
-
-            if (language && typeof language === 'string' && language.length > 0) {
-                conf.language = language;
-            }
 
             const transcription = await openai.audio.transcriptions.create(conf);
 
