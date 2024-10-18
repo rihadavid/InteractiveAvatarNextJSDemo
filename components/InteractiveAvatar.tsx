@@ -51,6 +51,7 @@ export default function InteractiveAvatar() {
 
     const [data, setData] = useState<StartAvatarResponse>();
     const [text, setText] = useState<string>("");
+    const [pendingText, setPendingText] = useState<string>("");
     const mediaStream = useRef<HTMLVideoElement>(null);
     const avatar = useRef<StreamingAvatar | null>(null);
     const [chatMode, setChatMode] = useState("text_mode");
@@ -210,7 +211,7 @@ export default function InteractiveAvatar() {
         try {
             const res = await avatar.current.createStartAvatar({
                 quality: AvatarQuality.Low,
-                avatarName: avatarId,
+                avatarName: 'josh_lite3_20230714',//avatarId,
                 knowledgeId: knowledgeId, // Or use a custom `knowledgeBase`.
                 voice: {
                     rate: 1.5, // 0.5 ~ 1.5
@@ -463,11 +464,17 @@ export default function InteractiveAvatar() {
 
             handleAudioResponse(response.data);
 
-            if (!isUserTalking && response.data.text) {
-                //setText(response.data.text);
-                await handleSpeak(response.data.text);
+            if (response.data.text) {
+                if (isUserTalking)
+                    setPendingText((pendingText ? pendingText : "") + response.data.text)
+                else {
+                    let textToSpeak = (pendingText ? pendingText : "") + response.data.text;
+                    setPendingText("");
+                    await handleSpeak(textToSpeak);
+                }
+            } else {
+                console.log('Not calling handleSpeak because no text was transcribed.');
             }
-            else
                 console.log('not calling handle speak');
         } catch (error) {
             console.error('Error sending audio for transcription:', error);
