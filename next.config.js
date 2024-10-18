@@ -24,7 +24,7 @@ const nextConfig = {
                         to: "static/chunks/[name][ext]"
                     },
                     {
-                        from: "node_modules/@zxing/library/umd/zxing.wasm",
+                        from: "node_modules/libopus/dist/libopus.wasm",
                         to: "static/chunks/[name][ext]"
                     },
                 ],
