@@ -23,7 +23,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Parse the raw request body
         const rawBody = await getRawBody(req);
-        const body = JSON.parse(rawBody.toString());
+        let body;
+        try {
+            body = JSON.parse(rawBody.toString());
+        } catch (parseError) {
+            console.error('Error parsing JSON:', parseError);
+            console.log('Received raw body:', rawBody.toString());
+            return res.status(400).json({ error: 'Invalid JSON in request body' });
+        }
+
         const { audio, language, sampleRate } = body;
 
         if (!audio || !Array.isArray(audio)) {
