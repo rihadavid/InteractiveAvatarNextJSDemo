@@ -404,7 +404,10 @@ export default function InteractiveAvatar() {
   useEffect(() => {
     async function initOnnx() {
       try {
-        await ort.env.wasm.wasmPaths;
+        // Set the path where the .wasm files are located
+        ort.env.wasm.wasmPaths = '/_next/static/chunks/';
+        await ort.init(); // Initialize the ONNX Runtime
+
         console.log("ONNX Runtime initialized successfully");
         setIsOnnxReady(true);
       } catch (error) {
