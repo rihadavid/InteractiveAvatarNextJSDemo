@@ -23,6 +23,10 @@ const nextConfig = {
                         from: "node_modules/onnxruntime-web/dist/*.wasm",
                         to: "static/chunks/[name][ext]"
                     },
+                    {
+                        from: "node_modules/opus-encoder/dist/opus-encoder.wasm",
+                        to: "static/chunks/[name][ext]"
+                    },
                 ],
             })
         );

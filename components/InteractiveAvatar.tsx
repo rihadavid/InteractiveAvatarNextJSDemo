@@ -31,7 +31,7 @@ import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 import {useMicVAD} from "@ricky0123/vad-react";
 
 import * as ort from 'onnxruntime-web';
-
+import { OpusEncoder } from 'opus-encoder';
 import axios from 'axios';
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
@@ -478,7 +478,7 @@ export default function InteractiveAvatar() {
         try {
             console.log("starting float32ArrayToWebM");
             // Convert Float32Array to WebM format
-            const webmBlob = await float32ArrayToWebM(audio, 16000);
+            const blob = await float32ArrayToOpusOggBlob(audio, 16000);
                 console.log("finished float32ArrayToWebM");
 
             if (isUserTalking) return;
@@ -488,7 +488,7 @@ export default function InteractiveAvatar() {
 
             // Create FormData and append the WebM file and language
             const formData = new FormData();
-            formData.append('file', webmBlob, 'audio.webm');
+            formData.append('file', blob, 'audio.ogg');
             formData.append('language', languageRef.current); // Add this line to send the language
 
             if (isUserTalking) return;
@@ -553,8 +553,44 @@ export default function InteractiveAvatar() {
         }
     };
 
+    const float32ArrayToOpusOggBlob = async (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+        // Ensure the OpusEncoder is loaded
+        await OpusEncoder.load('/static/chunks/opus-encoder.wasm');
+
+        const encoder = new OpusEncoder({
+            channels: 1,
+            sample_rate: sampleRate,
+            application: 'audio'
+        });
+
+        // Convert Float32Array to Int16Array
+        const int16Samples = new Int16Array(samples.length);
+        for (let i = 0; i < samples.length; i++) {
+            int16Samples[i] = Math.max(-32768, Math.min(32767, Math.round(samples[i] * 32767)));
+        }
+
+        // Encode to Opus
+        const opusData = encoder.encode(int16Samples);
+
+        // Create a minimal OGG container
+        const oggHeader = new Uint8Array([
+            0x4F, 0x67, 0x67, 0x53, // Magic signature 'OggS'
+            0x00, // Version
+            0x02, // Header type flag (0x02 for beginning of stream)
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Granule position
+            0x01, 0x00, 0x00, 0x00, // Bitstream serial number
+            0x00, 0x00, 0x00, 0x00, // Page sequence number
+            0x00, 0x00, 0x00, 0x00, // Checksum (to be filled)
+            0x01, // Number of segments
+            opusData.length // Segment size
+        ]);
+
+        // Combine OGG header and Opus data
+        return new Blob([oggHeader, opusData], { type: 'audio/ogg; codecs=opus' });
+    };
+
     // Helper function to convert Float32Array to WebM
-    const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+    /*const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
         return new Promise((resolve) => {
             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
             const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
@@ -588,7 +624,7 @@ export default function InteractiveAvatar() {
                 source.stop();
             }, (samples.length / sampleRate) * 1000);
         });
-    };
+    };*/
 
     const [isOnnxReady, setIsOnnxReady] = useState(false);
 
