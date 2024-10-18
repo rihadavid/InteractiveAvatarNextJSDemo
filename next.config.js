@@ -47,6 +47,21 @@ const nextConfig = {
             };
         }
 
+        if (!isServer) {
+            config.module.rules.push({
+                test: /encoderWorker\.min\.js$/,
+                use: [
+                    {
+                        loader: 'file-loader',
+                        options: {
+                            name: 'static/[name].[hash].[ext]',
+                            publicPath: '/_next/',
+                        },
+                    },
+                ],
+            });
+        }
+
         return config;
     },
 };
