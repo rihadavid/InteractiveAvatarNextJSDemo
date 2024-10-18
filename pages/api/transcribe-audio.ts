@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         // Extract language from fields
-        const language = fields.language as string;
+        const language = Array.isArray(fields.language) ? fields.language[0] : fields.language;
 
         const fileArray = files.file;
         if (!fileArray || fileArray.length === 0) {
@@ -59,8 +59,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 response_format: 'verbose_json'
             };
 
-            if(language && language.length > 0)
+            if (language && typeof language === 'string' && language.length > 0) {
                 conf.language = language;
+            }
 
             const transcription = await openai.audio.transcriptions.create(conf);
 
