@@ -35,7 +35,7 @@ import * as ort from 'onnxruntime-web';
 import axios from 'axios';
 
 import OpusMediaRecorder from 'opus-media-recorder';
-import '././node_modules/opus-media-recorder/encoderWorker.min.js'; // Include the encoder worker
+import 'opus-media-recorder/encoderWorker.min.js'; // Include the encoder worker
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
