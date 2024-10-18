@@ -36,15 +36,6 @@ import axios from 'axios';
 
 import * as lamejs from 'lamejs';
 
-import MPEGMode from 'lamejs/src/js/MPEGMode';
-import Lame from 'lamejs/src/js/Lame';
-import BitStream from 'lamejs/src/js/BitStream';
-
-
-window.MPEGMode = MPEGMode;
-window.Lame = Lame;
-window.BitStream = BitStream;
-
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
