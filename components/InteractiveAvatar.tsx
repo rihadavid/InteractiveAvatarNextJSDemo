@@ -34,7 +34,16 @@ import * as ort from 'onnxruntime-web';
 //import Recorder from 'opus-recorder';
 import axios from 'axios';
 
-//import * as lamejs from 'lamejs';
+import * as lamejs from 'lamejs';
+
+import MPEGMode from 'lamejs/src/js/MPEGMode';
+import Lame from 'lamejs/src/js/Lame';
+import BitStream from 'lamejs/src/js/BitStream';
+
+
+window.MPEGMode = MPEGMode;
+window.Lame = Lame;
+window.BitStream = BitStream;
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
@@ -133,18 +142,14 @@ export default function InteractiveAvatar() {
                 console.error('Error reporting interruption:', error);
             });
             setIsAvatarTalking(false);
-
-            await startRecording();
-
             await interruptTask;
             if (interruptAvatarTask)
                 await interruptAvatarTask;
         },
         onSpeechEnd: async (audio) => {
             console.log("VAD speech end");
-            await stopRecording();
-            /*setIsUserTalking(false);
-            await sendAudioForTranscription(audio);*/
+            setIsUserTalking(false);
+            await sendAudioForTranscription(audio);
         },
         onVADMisfire: async () => {
         console.log("VAD speech misfire");
@@ -443,7 +448,7 @@ export default function InteractiveAvatar() {
 
             const data = await response.json();
             // Automatically trigger the handleSpeak function
-            await handleSpeak(data.text);
+            //await handleSpeak();
         } catch (error) {
             console.error("Error transcribing audio:", error);
             setDebug("Error transcribing audio");
@@ -559,7 +564,7 @@ export default function InteractiveAvatar() {
         }
     };
 
-    /*const float32ArrayToMP3Blob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+    const float32ArrayToMP3Blob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
         return new Promise((resolve, reject) => {
             try {
                 // Convert Float32Array to Int16Array
@@ -594,7 +599,7 @@ export default function InteractiveAvatar() {
                 reject(error);
             }
         });
-    };*/
+    };
 
 
     /*const float32ArrayToOpusOggBlob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {

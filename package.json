@@ -9,6 +9,7 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
+    "lamejs": "latest",
     "@types/formidable": "latest",
     "formidable": "latest",
     "axios":"latest",
