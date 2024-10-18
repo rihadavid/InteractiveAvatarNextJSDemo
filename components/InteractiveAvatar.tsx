@@ -34,7 +34,7 @@ import * as ort from 'onnxruntime-web';
 //import Recorder from 'opus-recorder';
 import axios from 'axios';
 
-import { Mp3Encoder } from 'lamejs';
+import * as lamejs from 'lamejs';
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
@@ -555,35 +555,43 @@ export default function InteractiveAvatar() {
         }
     };
 
-    const float32ArrayToMP3Blob = (samples: Float32Array, sampleRate: number): Blob => {
-        // Convert Float32Array to Int16Array
-        const int16Samples = new Int16Array(samples.length);
-        for (let i = 0; i < samples.length; i++) {
-            const s = Math.max(-1, Math.min(1, samples[i]));
-            int16Samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
+    const float32ArrayToMP3Blob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+            try {
+                // Convert Float32Array to Int16Array
+                const int16Samples = new Int16Array(samples.length);
+                for (let i = 0; i < samples.length; i++) {
+                    const s = Math.max(-1, Math.min(1, samples[i]));
+                    int16Samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                }
 
-        // Create MP3 encoder
-        const mp3encoder = new Mp3Encoder(1, sampleRate, 128);
+                // Create MP3 encoder
+                const mp3encoder = new lamejs.Mp3Encoder(1, sampleRate, 128);
 
-        const sampleBlockSize = 1152; // can be anything but make it a multiple of 576 to make encoders life easier
-        const mp3Data: Int8Array[] = [];
+                const sampleBlockSize = 1152; // can be anything but make it a multiple of 576 to make encoders life easier
+                const mp3Data: Int8Array[] = [];
 
-        for (let i = 0; i < int16Samples.length; i += sampleBlockSize) {
-            const sampleChunk = int16Samples.subarray(i, i + sampleBlockSize);
-            const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
-            if (mp3buf.length > 0) {
-                mp3Data.push(mp3buf);
+                for (let i = 0; i < int16Samples.length; i += sampleBlockSize) {
+                    const sampleChunk = int16Samples.subarray(i, i + sampleBlockSize);
+                    const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
+                    if (mp3buf.length > 0) {
+                        mp3Data.push(mp3buf);
+                    }
+                }
+
+                const mp3buf = mp3encoder.flush();
+                if (mp3buf.length > 0) {
+                    mp3Data.push(mp3buf);
+                }
+
+                const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+                resolve(blob);
+            } catch (error) {
+                reject(error);
             }
-        }
-
-        const mp3buf = mp3encoder.flush();
-        if (mp3buf.length > 0) {
-            mp3Data.push(mp3buf);
-        }
-
-        return new Blob(mp3Data, { type: 'audio/mp3' });
+        });
     };
+
 
     /*const float32ArrayToOpusOggBlob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
         return new Promise((resolve, reject) => {

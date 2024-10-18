@@ -31,6 +31,12 @@ const nextConfig = {
             })
         );
 
+        config.plugins.push(
+            new webpack.ProvidePlugin({
+                Buffer: ['buffer', 'Buffer'],
+            })
+        );
+
         // Handle WebAssembly
         config.experiments = {
             ...config.experiments,
