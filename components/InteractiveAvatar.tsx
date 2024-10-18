@@ -569,6 +569,7 @@ export default function InteractiveAvatar() {
                                     className="max-w-xs"
                                     selectedKeys={[language]}
                                     onChange={(e) => {
+                                        console.log("Language changed to:", e.target.value);
                                         setLanguage(e.target.value);
                                     }}
                                 >

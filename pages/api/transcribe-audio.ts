@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { Readable } from 'stream';
-import formidable, { File } from 'formidable';
+import formidable from 'formidable';
 import fs from 'fs';
 
 export const config = {
@@ -15,88 +15,80 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const form = new formidable.IncomingForm();
-
-    form.parse(req, async (err, fields, files) => {
-        if (err) {
-            console.error('Error parsing form:', err);
-            return res.status(400).json({ error: 'Error parsing form data' });
+    try {
+        const whisperApiKey = process.env.WHISPER_API_KEY;
+        if (!whisperApiKey) {
+            return res.status(500).json({ error: 'Whisper API key not configured' });
         }
+
+        const openai = new OpenAI({ apiKey: whisperApiKey });
+
+        const form = formidable({
+            keepExtensions: true,
+            multiples: false, // This ensures we only get one file
+        });
+
+        const [fields, files] = await new Promise<[formidable.Fields<string>, formidable.Files<string>]>((resolve, reject) => {
+            form.parse(req, (err, fields, files) => {
+                if (err) reject(err);
+                else resolve([fields, files]);
+            });
+        });
+
+        const file = files.file?.[0];  // Access the first file in the 'file' array
+        if (!file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const language = fields.language?.[0] || 'en';
+        const sampleRate = parseInt(fields.sampleRate?.[0] || '16000', 10);
+
+        // Read the file
+        const fileBuffer = fs.readFileSync(file.filepath);
+
+        // Parse the audio data as Float32Array
+        const float32Array = new Float32Array(fileBuffer.buffer);
+
+        // Convert Float32Array to WAV
+        const wavBuffer = await float32ArrayToWav(float32Array, sampleRate);
+
+        // Create a readable stream from the WAV buffer
+        const stream = new Readable();
+        stream.push(wavBuffer);
+        stream.push(null);
 
         try {
-            const whisperApiKey = process.env.WHISPER_API_KEY;
-            if (!whisperApiKey) {
-                return res.status(500).json({ error: 'Whisper API key not configured' });
-            }
+            const conf: OpenAI.Audio.Transcription.TranscriptionCreateParams = {
+                file: stream as any,
+                model: "whisper-1",
+                response_format: 'json',
+                language: language,
+            };
 
-            const openai = new OpenAI({ apiKey: whisperApiKey });
+            const transcription = await openai.audio.transcriptions.create(conf);
 
-            const fileArray = files.file;
-            if (!fileArray || (Array.isArray(fileArray) && fileArray.length === 0)) {
-                return res.status(400).json({ error: 'No file uploaded' });
-            }
+            console.log('Transcription successful');
 
-            const file: File = Array.isArray(fileArray) ? fileArray[0] : fileArray;
+            res.status(200).json({
+                text: transcription.text,
+            });
 
-            const language = Array.isArray(fields.language) ? fields.language[0] : fields.language;
-            const sampleRateStr = Array.isArray(fields.sampleRate) ? fields.sampleRate[0] : fields.sampleRate;
-            const sampleRate = sampleRateStr ? parseInt(sampleRateStr, 10) : 16000;
-
-            // Read the file
-            const fileBuffer = fs.readFileSync(file.filepath);
-
-            // Parse the audio data as Float32Array
-            const float32Array = new Float32Array(fileBuffer.buffer);
-
-            // Convert Float32Array to WAV
-            const wavBuffer = await float32ArrayToWav(float32Array, sampleRate);
-
-            // Create a readable stream from the WAV buffer
-            const stream = new Readable();
-            stream.push(wavBuffer);
-            stream.push(null);
-
-            try {
-                let conf: {
-                    file: any;
-                    model: string;
-                    response_format: 'json';
-                    language?: string;
-                } = {
-                    file: stream,
-                    model: "whisper-1",
-                    response_format: 'json'
-                };
-
-                if (language && typeof language === 'string' && language.length > 0) {
-                    conf.language = language;
-                }
-
-                const transcription = await openai.audio.transcriptions.create(conf);
-
-                console.log('Transcription successful');
-
-                res.status(200).json({
-                    text: transcription.text,
-                });
-
-            } catch (transcriptionError) {
-                console.error('Transcription error:', transcriptionError);
-                res.status(500).json({
-                    error: 'Error transcribing audio',
-                    details: transcriptionError instanceof Error ? transcriptionError.message : 'Unknown error',
-                });
-            }
-
-        } catch (error) {
-            console.error('Error processing request:', error);
-            if (error instanceof Error) {
-                res.status(500).json({ error: 'Error processing request', details: error.message });
-            } else {
-                res.status(500).json({ error: 'An unknown error occurred' });
-            }
+        } catch (transcriptionError) {
+            console.error('Transcription error:', transcriptionError);
+            res.status(500).json({
+                error: 'Error transcribing audio',
+                details: transcriptionError instanceof Error ? transcriptionError.message : 'Unknown error',
+            });
         }
-    });
+
+    } catch (error) {
+        console.error('Error processing request:', error);
+        if (error instanceof Error) {
+            res.status(500).json({ error: 'Error processing request', details: error.message });
+        } else {
+            res.status(500).json({ error: 'An unknown error occurred' });
+        }
+    }
 }
 
 // Helper function to convert Float32Array to WAV buffer
