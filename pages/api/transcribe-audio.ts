@@ -31,10 +31,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             const openai = new OpenAI({ apiKey: whisperApiKey });
 
-            const file = files.file as formidable.File;
-            if (!file) {
+            const fileArray = files.file;
+            if (!fileArray || fileArray.length === 0) {
                 return res.status(400).json({ error: 'No file uploaded' });
             }
+
+            const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
 
             const language = fields.language as string;
             const sampleRate = parseInt(fields.sampleRate as string, 10) || 16000;
