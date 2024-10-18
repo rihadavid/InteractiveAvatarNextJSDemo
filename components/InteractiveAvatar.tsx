@@ -31,7 +31,7 @@ import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 import {useMicVAD} from "@ricky0123/vad-react";
 
 import * as ort from 'onnxruntime-web';
-import { OpusEncoder } from '@opuscl/opus-cli';
+//import { OpusEncoder } from '@opuscl/opus-cli';
 import axios from 'axios';
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
@@ -478,7 +478,7 @@ export default function InteractiveAvatar() {
         try {
             console.log("starting float32ArrayToWebM");
             // Convert Float32Array to WebM format
-            const blob = await float32ArrayToOpusOggBlob(audio, 16000);
+            const blob = await float32ArrayToWebM(audio, 16000);
                 console.log("finished float32ArrayToWebM");
 
             if (isUserTalking) return;
@@ -553,7 +553,7 @@ export default function InteractiveAvatar() {
         }
     };
 
-    const float32ArrayToOpusOggBlob = async (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+    /*const float32ArrayToOpusOggBlob = async (samples: Float32Array, sampleRate: number): Promise<Blob> => {
         // Initialize the encoder
         const encoder = await OpusEncoder.create({
             channels: 1,
@@ -586,11 +586,11 @@ export default function InteractiveAvatar() {
         // Combine OGG header and Opus data
         const oggBlob = new Blob([oggHeader, opusData], { type: 'audio/ogg; codecs=opus' });
         return oggBlob;
-    };
+    };*/
 
 
     // Helper function to convert Float32Array to WebM
-    /*const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+    const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
         return new Promise((resolve) => {
             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
             const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
@@ -624,7 +624,7 @@ export default function InteractiveAvatar() {
                 source.stop();
             }, (samples.length / sampleRate) * 1000);
         });
-    };*/
+    };
 
     const [isOnnxReady, setIsOnnxReady] = useState(false);
 
