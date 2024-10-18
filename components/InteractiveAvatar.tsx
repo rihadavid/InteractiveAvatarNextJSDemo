@@ -34,7 +34,7 @@ import * as ort from 'onnxruntime-web';
 //import Recorder from 'opus-recorder';
 import axios from 'axios';
 
-import MP3Encoder  from 'mp3-encoder-js';
+import * as lamejs from 'lamejs';
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
@@ -555,30 +555,41 @@ export default function InteractiveAvatar() {
         }
     };
 
-    const float32ArrayToMP3Blob = async (samples: Float32Array, sampleRate: number): Promise<Blob> => {
-        // Convert Float32Array to Int16Array
-        const int16Samples = new Int16Array(samples.length);
-        for (let i = 0; i < samples.length; i++) {
-            const s = Math.max(-1, Math.min(1, samples[i]));
-            int16Samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
+    const float32ArrayToMP3Blob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+            try {
+                // Convert Float32Array to Int16Array
+                const int16Samples = new Int16Array(samples.length);
+                for (let i = 0; i < samples.length; i++) {
+                    const s = Math.max(-1, Math.min(1, samples[i]));
+                    int16Samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                }
 
-        // Create MP3 encoder
-        const encoder = new MP3Encoder(sampleRate, 128);
+                // Create MP3 encoder
+                const mp3encoder = new lamejs.Mp3Encoder(1, sampleRate, 128);
 
-        // Encode to MP3
-        const mp3Data = encoder.encodeBuffer(int16Samples);
+                const sampleBlockSize = 1152; // can be anything but make it a multiple of 576 to make encoders life easier
+                const mp3Data: Int8Array[] = [];
 
-        // Finalize the encoding
-        const finalMp3Data = encoder.finish();
+                for (let i = 0; i < int16Samples.length; i += sampleBlockSize) {
+                    const sampleChunk = int16Samples.subarray(i, i + sampleBlockSize);
+                    const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
+                    if (mp3buf.length > 0) {
+                        mp3Data.push(mp3buf);
+                    }
+                }
 
-        // Combine all MP3 data
-        const fullMp3Data = new Uint8Array(mp3Data.length + finalMp3Data.length);
-        fullMp3Data.set(mp3Data, 0);
-        fullMp3Data.set(finalMp3Data, mp3Data.length);
+                const mp3buf = mp3encoder.flush();
+                if (mp3buf.length > 0) {
+                    mp3Data.push(mp3buf);
+                }
 
-        // Create blob
-        return new Blob([fullMp3Data], { type: 'audio/mp3' });
+                const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+                resolve(blob);
+            } catch (error) {
+                reject(error);
+            }
+        });
     };
 
 
