@@ -406,7 +406,7 @@ export default function InteractiveAvatar() {
       try {
         // Set the path where the .wasm files are located
         ort.env.wasm.wasmPaths = '/_next/static/chunks/';
-        await ort.init(); // Initialize the ONNX Runtime
+        //await ort.init(); // Initialize the ONNX Runtime
 
         console.log("ONNX Runtime initialized successfully");
         setIsOnnxReady(true);
