@@ -23,6 +23,10 @@ const nextConfig = {
                         from: "node_modules/onnxruntime-web/dist/*.wasm",
                         to: "static/chunks/[name][ext]"
                     },
+                    /*{
+                        from: "node_modules/opus-recorder/dist/encoderWorker.min.wasm",
+                        to: "static/chunks/[name][ext]"
+                    },*/
                 ],
             })
         );
@@ -48,23 +52,6 @@ const nextConfig = {
         }
 
         return config;
-    },
-    async headers() {
-        return [
-            {
-                source: '/(.*)',
-                headers: [
-                    {
-                        key: 'Cross-Origin-Opener-Policy',
-                        value: 'same-origin',
-                    },
-                    {
-                        key: 'Cross-Origin-Embedder-Policy',
-                        value: 'require-corp',
-                    },
-                ],
-            },
-        ];
     },
 };
 

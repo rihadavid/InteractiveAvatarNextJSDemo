@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "latest",
-    "@ffmpeg/util": "latest",
     "@types/formidable": "latest",
     "formidable": "latest",
     "axios":"latest",
