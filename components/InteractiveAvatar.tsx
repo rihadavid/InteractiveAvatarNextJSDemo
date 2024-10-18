@@ -42,7 +42,7 @@ const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
 export default function InteractiveAvatar() {
     const customSessionIdRef = useRef<string | null>(null);
-    const languageRef = useRef<string | null>('en');
+    const languageRef = useRef<string>('en');
     const wsConnectionRef = useRef<WebSocket | null>(null);
 
     const [isLoadingSession, setIsLoadingSession] = useState(false);
@@ -575,7 +575,7 @@ export default function InteractiveAvatar() {
                                     selectedKeys={[language]}
                                     onChange={(e) => {
                                         console.log("Language changed to:", e.target.value);
-                                        languageRef.current = e.target.valu;
+                                        languageRef.current = e.target.value;
                                     }}
                                 >
                                     {STT_LANGUAGE_LIST.map((lang) => (
