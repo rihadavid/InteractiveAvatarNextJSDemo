@@ -117,6 +117,7 @@ export default function InteractiveAvatar() {
     }
 
     const vad = useMicVAD({
+        startOnLoad: false,
         onSpeechStart: async () => {
             console.log("VAD speech start");
             setIsUserTalking(true);
@@ -142,7 +143,22 @@ export default function InteractiveAvatar() {
         onVADMisfire: async () => {
         console.log("VAD speech misfire");
         setIsUserTalking(false);
-    },
+        },
+        positiveSpeechThreshold: 0.8,
+        negativeSpeechThreshold: 0.65,
+        redemptionFrames: 10,
+        minSpeechFrames: 5
+
+        /* DEFAULTS:
+          positiveSpeechThreshold: 0.5, determines the threshold over which a probability is considered to indicate the presence of speech.
+          negativeSpeechThreshold: 0.5 - 0.15, determines the threshold under which a probability is considered to indicate the absence of speech.
+          preSpeechPadFrames: 1, number of audio frames to prepend to a speech segment.
+          redemptionFrames: 8, number of speech-negative frames to wait before ending a speech segment.
+          frameSamples: 1536, the size of a frame in samples - 1536 by default and probably should not be changed.
+          minSpeechFrames: 3, minimum number of speech-positive frames for a speech segment.
+          submitUserSpeechOnPause: false,
+        * */
+
     });
 
     async function startSession() {
