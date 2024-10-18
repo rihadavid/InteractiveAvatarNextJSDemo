@@ -9,7 +9,6 @@
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
-    "opus-media-recorder":"latest",
     "@types/formidable": "latest",
     "formidable": "latest",
     "axios":"latest",
