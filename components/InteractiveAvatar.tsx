@@ -575,7 +575,7 @@ export default function InteractiveAvatar() {
                                     selectedKeys={[language]}
                                     onChange={(e) => {
                                         console.log("Language changed to:", e.target.value);
-                                        languageRef.current = e.target.valu);
+                                        languageRef.current = e.target.valu;
                                     }}
                                 >
                                     {STT_LANGUAGE_LIST.map((lang) => (
