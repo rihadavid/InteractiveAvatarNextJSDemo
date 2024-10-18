@@ -482,72 +482,33 @@ export default function InteractiveAvatar() {
         try {
             console.log("Sending audio for transcription using language " + languageRef.current);
             
-            // Convert Float32Array to AudioBuffer
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const audioBuffer = audioContext.createBuffer(1, audio.length, 16000);
-            audioBuffer.getChannelData(0).set(audio);
-
-            // Create a MediaStream from the AudioBuffer
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-            const destination = audioContext.createMediaStreamDestination();
-            source.connect(destination);
-
-            // Create an Opus MediaRecorder
-            const mediaRecorder = new OpusMediaRecorder(destination.stream, {
-                mimeType: 'audio/ogg',
-                audioBitsPerSecond: 16000,
+            // Convert Float32Array to Base64 string
+            const base64Audio = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(audio.buffer))));
+            
+            const response = await axios.post<AudioResponse>('/api/transcribe-audio', {
+                file: base64Audio,
+                language: languageRef.current,
+                sampleRate: 16000, // Assuming 16kHz sample rate, adjust if different
+            }, {
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
 
-            const chunks: Blob[] = [];
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    chunks.push(event.data);
+            handleAudioResponse(response.data);
+
+            if (response.data.text) {
+                if (isUserTalking)
+                    setPendingText((pendingText ? pendingText : "") + response.data.text)
+                else {
+                    let textToSpeak = (pendingText ? pendingText : "") + response.data.text;
+                    setPendingText("");
+                    await handleSpeak(textToSpeak);
                 }
-            };
-
-            return new Promise((resolve, reject) => {
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(chunks, { type: 'audio/ogg' });
-                    
-                    const formData = new FormData();
-                    formData.append('file', audioBlob, 'audio.ogg');
-                    formData.append('language', languageRef.current);
-                    formData.append('sampleRate', '16000');
-
-                    try {
-                        const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
-                            headers: { 'Content-Type': 'multipart/form-data' },
-                        });
-
-                        handleAudioResponse(response.data);
-
-                        if (response.data.text) {
-                            if (isUserTalking) {
-                                setPendingText((prevText) => prevText + response.data.text);
-                            } else {
-                                let textToSpeak = pendingText + response.data.text;
-                                setPendingText('');
-                                await handleSpeak(textToSpeak.trim());
-                            }
-                        } else {
-                            console.log('Not calling handleSpeak because no text was transcribed.');
-                        }
-                        resolve();
-                    } catch (error) {
-                        console.error('Error sending audio for transcription:', error);
-                        setDebug('Error transcribing audio');
-                        reject(error);
-                    }
-                };
-
-                source.start(0);
-                mediaRecorder.start();
-                setTimeout(() => mediaRecorder.stop(), (audio.length / 16000) * 1000);
-            });
+            } else {
+                console.log('Not calling handleSpeak because no text was transcribed.');
+            }
         } catch (error) {
-            console.error('Error processing audio:', error);
-            setDebug('Error processing audio');
+            console.error('Error sending audio for transcription:', error);
+            setDebug('Error transcribing audio');
         }
     };
 
