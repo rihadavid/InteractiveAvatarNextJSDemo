@@ -66,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 response_format: AudioResponseFormat;
                 language?: string;
             } = {
-                file: stream as any,
+                file: fs.createReadStream(file.filepath),
                 model: "whisper-1",
                 response_format: 'verbose_json' as AudioResponseFormat
             };
