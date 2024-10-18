@@ -459,7 +459,7 @@ export default function InteractiveAvatar() {
             const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
                 headers: {'Content-Type': 'multipart/form-data'},
             });
-                console.log("received transcription");
+                console.log("received transcription");//
 
             handleAudioResponse(response.data);
 
