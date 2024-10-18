@@ -23,10 +23,10 @@ const nextConfig = {
                         from: "node_modules/onnxruntime-web/dist/*.wasm",
                         to: "static/chunks/[name][ext]"
                     },
-                    /*{
-                        from: "node_modules/@opuscl/opus-cli/dist/opus-cli.wasm",
+                    {
+                        from: "node_modules/opus-recorder/dist/encoderWorker.min.wasm",
                         to: "static/chunks/[name][ext]"
-                    },*/
+                    },
                 ],
             })
         );

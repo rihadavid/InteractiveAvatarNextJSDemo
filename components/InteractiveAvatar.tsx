@@ -31,7 +31,7 @@ import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 import {useMicVAD} from "@ricky0123/vad-react";
 
 import * as ort from 'onnxruntime-web';
-//import { OpusEncoder } from '@opuscl/opus-cli';
+import Recorder from 'opus-recorder';
 import axios from 'axios';
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
@@ -478,7 +478,7 @@ export default function InteractiveAvatar() {
         try {
             console.log("starting float32ArrayToWebM");
             // Convert Float32Array to WebM format
-            const blob = await float32ArrayToWebM(audio, 16000);
+            const blob = await float32ArrayToOpusOggBlob(audio, 16000);
                 console.log("finished float32ArrayToWebM");
 
             if (isUserTalking) return;
@@ -553,40 +553,50 @@ export default function InteractiveAvatar() {
         }
     };
 
-    /*const float32ArrayToOpusOggBlob = async (samples: Float32Array, sampleRate: number): Promise<Blob> => {
-        // Initialize the encoder
-        const encoder = await OpusEncoder.create({
-            channels: 1,
-            sampleRate: sampleRate,
-            application: 'audio'
+    const float32ArrayToOpusOggBlob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+            const recorder = new Recorder({
+                encoderPath: '/static/chunks/encoderWorker.min.js',
+                encoderSampleRate: sampleRate,
+                numberOfChannels: 1,
+                streamPages: true,
+                maxBuffersPerPage: 1000
+            });
+
+            let oggBlob: Blob;
+
+            recorder.ondataavailable = (arrayBuffer: ArrayBuffer) => {
+                oggBlob = new Blob([arrayBuffer], { type: 'audio/ogg' });
+            };
+
+            recorder.onstop = () => {
+                resolve(oggBlob);
+            };
+
+            recorder.onerror = (error: Event) => {
+                reject(error);
+            };
+
+            // Start recording
+            recorder.start();
+
+            // Create an AudioBuffer from the Float32Array
+            const audioContext = new OfflineAudioContext(1, samples.length, sampleRate);
+            const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
+            audioBuffer.copyToChannel(samples, 0);
+
+            // Create a BufferSource and connect it to the recorder
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(recorder.input);
+            source.start();
+
+            // Stop recording when the source finishes
+            source.onended = () => {
+                recorder.stop();
+            };
         });
-
-        // Convert Float32Array to Int16Array
-        const int16Samples = new Int16Array(samples.length);
-        for (let i = 0; i < samples.length; i++) {
-            int16Samples[i] = Math.max(-32768, Math.min(32767, Math.round(samples[i] * 32767)));
-        }
-
-        // Encode to Opus
-        const opusData = await encoder.encode(int16Samples);
-
-        // Create a minimal OGG container
-        const oggHeader = new Uint8Array([
-            0x4F, 0x67, 0x67, 0x53, // Magic signature 'OggS'
-            0x00, // Version
-            0x02, // Header type flag (0x02 for beginning of stream)
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Granule position
-            0x01, 0x00, 0x00, 0x00, // Bitstream serial number
-            0x00, 0x00, 0x00, 0x00, // Page sequence number
-            0x00, 0x00, 0x00, 0x00, // Checksum (to be filled)
-            0x01, // Number of segments
-            opusData.length // Segment size
-        ]);
-
-        // Combine OGG header and Opus data
-        const oggBlob = new Blob([oggHeader, opusData], { type: 'audio/ogg; codecs=opus' });
-        return oggBlob;
-    };*/
+    };
 
 
     // Helper function to convert Float32Array to WebM
