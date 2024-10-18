@@ -31,7 +31,7 @@ import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
 import {useMicVAD} from "@ricky0123/vad-react";
 
 import * as ort from 'onnxruntime-web';
-import { OpusEncoder } from 'opus-encoder';
+import { OpusEncoder } from '@zxing/library';
 import axios from 'axios';
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
@@ -554,14 +554,8 @@ export default function InteractiveAvatar() {
     };
 
     const float32ArrayToOpusOggBlob = async (samples: Float32Array, sampleRate: number): Promise<Blob> => {
-        // Ensure the OpusEncoder is loaded
-        await OpusEncoder.load('/static/chunks/opus-encoder.wasm');
-
-        const encoder = new OpusEncoder({
-            channels: 1,
-            sample_rate: sampleRate,
-            application: 'audio'
-        });
+        // Create the encoder
+        const encoder = new OpusEncoder(sampleRate, 1, OpusEncoder.Application.AUDIO);
 
         // Convert Float32Array to Int16Array
         const int16Samples = new Int16Array(samples.length);
@@ -586,8 +580,10 @@ export default function InteractiveAvatar() {
         ]);
 
         // Combine OGG header and Opus data
-        return new Blob([oggHeader, opusData], { type: 'audio/ogg; codecs=opus' });
+        const oggBlob = new Blob([oggHeader, opusData], { type: 'audio/ogg; codecs=opus' });
+        return oggBlob;
     };
+
 
     // Helper function to convert Float32Array to WebM
     /*const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {

@@ -24,7 +24,7 @@ const nextConfig = {
                         to: "static/chunks/[name][ext]"
                     },
                     {
-                        from: "node_modules/opus-encoder/dist/opus-encoder.wasm",
+                        from: "node_modules/@zxing/library/umd/zxing.wasm",
                         to: "static/chunks/[name][ext]"
                     },
                 ],
