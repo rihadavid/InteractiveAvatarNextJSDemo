@@ -120,9 +120,7 @@ export default function InteractiveAvatar() {
             console.log("VAD speech start");
             setIsUserTalking(true);
 
-            let interruptAvatarTask;
-            if (isAvatarTalking)
-                interruptAvatarTask = avatar.current ? avatar.current.interrupt() : undefined;
+            let interruptAvatarTask = handleInterrupt();
 
             console.log("Calling INTERRUPT from onSpeechStart");
             let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
@@ -298,7 +296,7 @@ export default function InteractiveAvatar() {
         await avatar.current
             .interrupt()
             .catch((e) => {
-                setDebug(e.message);
+                console.log(e.message);
             });
     }
 
