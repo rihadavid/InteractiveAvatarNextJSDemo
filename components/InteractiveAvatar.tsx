@@ -213,6 +213,8 @@ export default function InteractiveAvatar() {
             await stopRecording();
         });
         try {
+            console.log('starting avatar with language ' + languageRef.current);
+
             const res = await avatar.current.createStartAvatar({
                 quality: AvatarQuality.Low,
                 avatarName: 'josh_lite3_20230714',//avatarId,
