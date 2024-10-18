@@ -42,7 +42,6 @@ const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
 
 export default function InteractiveAvatar() {
     const customSessionIdRef = useRef<string | null>(null);
-    const languageRef = useRef<string | null>('en');
     const wsConnectionRef = useRef<WebSocket | null>(null);
 
     const [isLoadingSession, setIsLoadingSession] = useState(false);
@@ -51,7 +50,7 @@ export default function InteractiveAvatar() {
     const [debug, setDebug] = useState<string>();
     const [knowledgeId, setKnowledgeId] = useState<string>("");
     const [avatarId, setAvatarId] = useState<string>("");
-    const [language, setLanguage] = useState<string>();
+    const [language, setLanguage] = useState<string>('en');
 
     const [data, setData] = useState<StartAvatarResponse>();
     const [text, setText] = useState<string>("");
@@ -221,7 +220,7 @@ export default function InteractiveAvatar() {
                     rate: 1.5, // 0.5 ~ 1.5
                     emotion: VoiceEmotion.EXCITED,
                 },
-                language: languageRef.current,
+                language: language,
             });
 
             setData(res);
@@ -481,14 +480,14 @@ export default function InteractiveAvatar() {
     // Usage in sendAudioForTranscription
     const sendAudioForTranscription = async (audio: Float32Array) => {
         try {
-            console.log("Sending audio for transcription using language " + languageRef.current);
+            console.log("Sending audio for transcription using language " + language);
             
             // Convert Float32Array to Base64 string
-            const base64Audio = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(audio.buffer))));
+            const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(audio.buffer)));
             
             const response = await axios.post<AudioResponse>('/api/transcribe-audio', {
                 file: base64Audio,
-                language: languageRef.current,
+                language: language,
                 sampleRate: 16000, // Assuming 16kHz sample rate, adjust if different
             }, {
                 headers: { 'Content-Type': 'multipart/form-data' },
@@ -575,7 +574,7 @@ export default function InteractiveAvatar() {
                                     selectedKeys={[language]}
                                     onChange={(e) => {
                                         console.log("Language changed to:", e.target.value);
-                                        languageRef.current = e.target.valu);
+                                        setLanguage(e.target.value);
                                     }}
                                 >
                                     {STT_LANGUAGE_LIST.map((lang) => (
