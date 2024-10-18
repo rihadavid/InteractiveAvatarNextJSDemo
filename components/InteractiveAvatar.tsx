@@ -34,7 +34,7 @@ import * as ort from 'onnxruntime-web';
 //import Recorder from 'opus-recorder';
 import axios from 'axios';
 
-import * as lamejs from 'lamejs';
+//import * as lamejs from 'lamejs';
 
 const wsUrl = process.env.NEXT_PUBLIC_WSS_URL;
 const interruptionUrl = process.env.NEXT_PUBLIC_INTERRUPTION_URL;
@@ -480,7 +480,7 @@ export default function InteractiveAvatar() {
         try {
             console.log("starting float32ArrayToWebM");
             // Convert Float32Array to WebM format
-            const blob = await float32ArrayToMP3Blob(audio, 16000);
+            const blob = await float32ArrayToWebM(audio, 16000);
                 console.log("finished float32ArrayToWebM");
 
             if (isUserTalking) return;
@@ -555,7 +555,7 @@ export default function InteractiveAvatar() {
         }
     };
 
-    const float32ArrayToMP3Blob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
+    /*const float32ArrayToMP3Blob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
         return new Promise((resolve, reject) => {
             try {
                 // Convert Float32Array to Int16Array
@@ -590,7 +590,7 @@ export default function InteractiveAvatar() {
                 reject(error);
             }
         });
-    };
+    };*/
 
 
     /*const float32ArrayToOpusOggBlob = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
