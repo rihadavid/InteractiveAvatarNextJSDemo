@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { Readable } from 'stream';
-import formidable, { File } from 'formidable';
+import formidable from 'formidable';
 import fs from 'fs';
 
 export const config = {
@@ -32,15 +32,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const openai = new OpenAI({ apiKey: whisperApiKey });
 
             const fileArray = files.file;
-            if (!fileArray || (Array.isArray(fileArray) && fileArray.length === 0)) {
+            if (!fileArray || fileArray.length === 0) {
                 return res.status(400).json({ error: 'No file uploaded' });
             }
 
-            const file: File = Array.isArray(fileArray) ? fileArray[0] : fileArray;
+            const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
 
-            const language = Array.isArray(fields.language) ? fields.language[0] : fields.language;
-            const sampleRateStr = Array.isArray(fields.sampleRate) ? fields.sampleRate[0] : fields.sampleRate;
-            const sampleRate = sampleRateStr ? parseInt(sampleRateStr, 10) : 16000;
+            const language = fields.language as string;
+            const sampleRate = parseInt(fields.sampleRate as string, 10) || 16000;
 
             // Read the file
             const fileBuffer = fs.readFileSync(file.filepath);
