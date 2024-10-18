@@ -1,4 +1,8 @@
 export const AVATARS = [
+    {
+        avatar_id: "josh_lite3_20230714",
+        name: "Joshua Heygen CEO",
+    },
   {
     avatar_id: "Eric_public_pro2_20230608",
     name: "Edward in Blue Shirt",
@@ -14,11 +18,7 @@ export const AVATARS = [
   {
     avatar_id: "Susan_public_2_20240328",
     name: "Susan in Black Shirt",
-  },
-  {
-    avatar_id: "josh_lite3_20230714",
-    name: "Joshua Heygen CEO",
-  },
+  }
 ];
 
 export const STT_LANGUAGE_LIST = [
