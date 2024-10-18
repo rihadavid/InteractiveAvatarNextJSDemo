@@ -220,6 +220,7 @@ export default function InteractiveAvatar() {
       });
 
       setData(res);
+        console.log("VAD start");
       vad.start(); // Start VAD when the session starts
     } catch (error) {
       console.error("Error starting avatar session:", error);
@@ -301,6 +302,7 @@ export default function InteractiveAvatar() {
         wsConnectionRef.current.close();
         wsConnectionRef.current = null;
     }
+    console.log("VAD pause");
     vad.pause(); // Stop VAD when ending the session
   }
 
