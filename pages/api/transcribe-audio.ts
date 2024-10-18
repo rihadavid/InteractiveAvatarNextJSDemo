@@ -21,18 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const openai = new OpenAI({ apiKey: whisperApiKey });
 
-        // Parse the raw request body
-        const rawBody = await getRawBody(req);
-        let body;
-        try {
-            body = JSON.parse(rawBody.toString());
-        } catch (parseError) {
-            console.error('Error parsing JSON:', parseError);
-            console.log('Received raw body:', rawBody.toString());
-            return res.status(400).json({ error: 'Invalid JSON in request body' });
-        }
-
-        const { audio, language, sampleRate } = body;
+        const { audio, language, sampleRate } = req.body;
 
         if (!audio || !Array.isArray(audio)) {
             return res.status(400).json({ error: 'Invalid audio data' });
@@ -91,20 +80,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             res.status(500).json({ error: 'An unknown error occurred' });
         }
     }
-}
-
-// Helper function to get raw body data
-function getRawBody(req: NextApiRequest): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-        let body = '';
-        req.on('data', (chunk) => {
-            body += chunk.toString();
-        });
-        req.on('end', () => {
-            resolve(Buffer.from(body));
-        });
-        req.on('error', reject);
-    });
 }
 
 // Helper function to convert Float32Array to WAV buffer
