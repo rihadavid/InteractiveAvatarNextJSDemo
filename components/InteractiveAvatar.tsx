@@ -210,7 +210,7 @@ export default function InteractiveAvatar() {
         try {
             const res = await avatar.current.createStartAvatar({
                 quality: AvatarQuality.Low,
-                avatarName: process.env.NEXT_PUBLIC_AVATAR_ID,// '1727720732',//avatarId,
+                avatarName: process.env.NEXT_PUBLIC_AVATAR_ID ? process.env.NEXT_PUBLIC_AVATAR_ID : avatarId,// '1727720732',//avatarId,
                 knowledgeId: knowledgeId, // Or use a custom `knowledgeBase`.
                 voice: {
                     rate: 1.5, // 0.5 ~ 1.5
