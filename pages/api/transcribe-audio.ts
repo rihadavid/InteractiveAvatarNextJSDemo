@@ -34,6 +34,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         });
 
+        // Extract language from fields
+        const language = fields.language as string;
+
         const fileArray = files.file;
         if (!fileArray || fileArray.length === 0) {
             return res.status(400).json({ error: 'No audio file found in request' });
@@ -44,11 +47,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log('Received file size:', fs.statSync(file.filepath).size, 'bytes');
 
         try {
-            const transcription = await openai.audio.transcriptions.create({
+
+            let conf: {
+                file: any;
+                model: string;
+                response_format: string;
+                language?: string;
+            } = {
                 file: fs.createReadStream(file.filepath),
                 model: "whisper-1",
                 response_format: 'verbose_json'
-            });
+            };
+
+            if(language && language.length > 0)
+                conf.language = language;
+
+            const transcription = await openai.audio.transcriptions.create(conf);
 
             console.log('Transcription successful');
 

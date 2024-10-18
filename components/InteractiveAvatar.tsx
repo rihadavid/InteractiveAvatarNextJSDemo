@@ -445,9 +445,10 @@ export default function InteractiveAvatar() {
             // For debugging: download the audio before sending
             //downloadBlob(webmBlob, 'pre_send_audio.webm');
 
-            // Create FormData and append the WebM file
+            // Create FormData and append the WebM file and language
             const formData = new FormData();
             formData.append('file', webmBlob, 'audio.webm');
+            formData.append('language', language); // Add this line to send the language
 
             if (isUserTalking) return;
 
