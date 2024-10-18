@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "opus-recorder": "latest",
+    "@types/opus-recorder": "latest",
     "@types/formidable": "latest",
     "formidable": "latest",
     "axios":"latest",
