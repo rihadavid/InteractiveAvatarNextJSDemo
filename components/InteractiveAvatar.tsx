@@ -47,7 +47,7 @@ export default function InteractiveAvatar() {
     const [debug, setDebug] = useState<string>();
     const [knowledgeId, setKnowledgeId] = useState<string>("");
     const [avatarId, setAvatarId] = useState<string>("");
-    const languageRef = useRef<string>('en');
+    const languageRef = useRef<string>('cs');
 
     const [data, setData] = useState<StartAvatarResponse>();
     const [text, setText] = useState<string>("");
@@ -256,6 +256,22 @@ export default function InteractiveAvatar() {
             return;
         }
 
+        const speakQueue: string[] = [];
+        let isSpeaking = false;
+
+        async function processQueue() {
+            if (isSpeaking || speakQueue.length === 0) return;
+            isSpeaking = true;
+            const text = speakQueue.shift()!;
+            try {
+                await avatar.current!.speak({ text, task_type: TaskType.REPEAT });
+            } catch (error) {
+                console.error("Error in avatar speak:", error);
+            }
+            isSpeaking = false;
+            processQueue();
+        }
+
         try {
             wsConnectionRef.current.send(JSON.stringify({
                 action: 'MESSAGE',
@@ -272,8 +288,8 @@ export default function InteractiveAvatar() {
                 }
 
                 if (avatar.current) {
-                    //console.log("handleSpeak sending text");
-                    await avatar.current.speak({text: chunk, task_type: TaskType.REPEAT});
+                    speakQueue.push(chunk);
+                    processQueue();
                 } else {
                     console.log("Avatar API not initialized during speech");
                     setDebug("Avatar API not initialized during speech");
@@ -591,22 +607,6 @@ export default function InteractiveAvatar() {
                         <div className="h-full justify-center items-center flex flex-col gap-8 w-[500px] self-center">
                             <div className="flex flex-col gap-2 w-full">
                                 <Select
-                                    placeholder="Select one from these example avatars"
-                                    size="md"
-                                    onChange={(e) => {
-                                        setAvatarId(e.target.value);
-                                    }}
-                                >
-                                    {AVATARS.map((avatar) => (
-                                        <SelectItem
-                                            key={avatar.avatar_id}
-                                            textValue={avatar.avatar_id}
-                                        >
-                                            {avatar.name}
-                                        </SelectItem>
-                                    ))}
-                                </Select>
-                                <Select
                                     label="Select language"
                                     placeholder="Select language"
                                     className="max-w-xs"
@@ -636,45 +636,6 @@ export default function InteractiveAvatar() {
                     )}
                 </CardBody>
                 <Divider/>
-                <CardFooter className="flex flex-col gap-3 relative">
-                    <Tabs
-                        aria-label="Options"
-                        selectedKey={chatMode}
-                        onSelectionChange={(v) => {
-                            handleChangeChatMode(v);
-                        }}
-                    >
-                        <Tab key="text_mode" title="Text mode"/>
-                        <Tab key="voice_mode" title="Voice mode"/>
-                    </Tabs>
-                    {chatMode === "text_mode" ? (
-                        <div className="w-full flex relative">
-                            <InteractiveAvatarTextInput
-                                disabled={!stream}
-                                input={text}
-                                label="Chat"
-                                loading={isLoadingRepeat}
-                                placeholder="Type something for the avatar to respond"
-                                setInput={setText}
-                                onSubmit={handleSpeakk}
-                            />
-                            {text && (
-                                <Chip className="absolute right-16 top-3">Listening</Chip>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="w-full text-center">
-                            <Button
-                                isDisabled={!isUserTalking}
-                                className="bg-gradient-to-tr from-indigo-500 to-indigo-300 text-white"
-                                size="md"
-                                variant="shadow"
-                            >
-                                {isUserTalking ? "Listening" : "Voice chat"}
-                            </Button>
-                        </div>
-                    )}
-                </CardFooter>
             </Card>
         </div>
     );
