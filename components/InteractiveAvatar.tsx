@@ -122,6 +122,7 @@ export default function InteractiveAvatar() {
 
       if (isAvatarTalking) {
           let interruptAvatarTask = avatar.current ? avatar.current.interrupt() : undefined;
+          console.log("Calling INTERRUPT from onSpeechStart");
           let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
               method: 'GET',
           }).catch(error => {
@@ -186,6 +187,7 @@ export default function InteractiveAvatar() {
       //setIsUserTalking(true);
 
       if (isAvatarTalking) {
+          console.log("Calling INTERRUPT from StreamingEvents.USER_START");
         let interruptTask = fetch(`${interruptionUrl}/?signature=${signature}`, {
           method: 'GET',
         }).catch(error => {
