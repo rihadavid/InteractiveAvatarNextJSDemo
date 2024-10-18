@@ -480,17 +480,13 @@ export default function InteractiveAvatar() {
     // Usage in sendAudioForTranscription
     const sendAudioForTranscription = async (audio: Float32Array) => {
         try {
-            console.log("will call float32ArrayToWebM");
-            const blob = await float32ArrayToWebM(audio, 16000);
-
-            const formData = new FormData();
-            formData.append('file', blob, 'audio.webm');
-            formData.append('language', language);
-
-            // Send the audio to the server for transcription
             console.log("Sending audio for transcription using language " + language);
-            const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
-                headers: {'Content-Type': 'multipart/form-data'},
+            const response = await axios.post<AudioResponse>('/api/transcribe-audio', {
+                audio: Array.from(audio), // Convert to regular array for JSON serialization
+                language: language,
+                sampleRate: 16000, // Assuming 16kHz sample rate, adjust if different
+            }, {
+                headers: { 'Content-Type': 'application/json' },
             });
 
             handleAudioResponse(response.data);
@@ -514,28 +510,11 @@ export default function InteractiveAvatar() {
 
 
     const handleAudioResponse = (response: AudioResponse) => {
-        if (response.audioData) {
-            // Convert base64 to Blob
-            const byteCharacters = atob(response.audioData);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], {type: 'audio/webm'});
-
-            // For debugging: download the audio after receiving
-            //downloadBlob(blob, 'post_send_audio.webm');
-
-            //console.log('Audio file size:', response.audioDataSize, 'bytes');
-            if (response.text) {
-                console.log('Transcribed text:', response.text);
-            }
-            if (response.error) {
-                console.error('Error:', response.error, 'Details:', response.details);
-            }
-        } else {
-            console.log('No audio data received');
+        if (response.text) {
+            console.log('Transcribed text:', response.text);
+        }
+        if (response.error) {
+            console.error('Error:', response.error, 'Details:', response.details);
         }
     };
 
