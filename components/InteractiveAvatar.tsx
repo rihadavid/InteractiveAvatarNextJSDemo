@@ -482,15 +482,18 @@ export default function InteractiveAvatar() {
         try {
             console.log("Sending audio for transcription using language " + languageRef.current);
             
+            // Convert Float32Array to AudioBuffer
             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
             const audioBuffer = audioContext.createBuffer(1, audio.length, 16000);
             audioBuffer.getChannelData(0).set(audio);
 
+            // Create a MediaStream from the AudioBuffer
             const source = audioContext.createBufferSource();
             source.buffer = audioBuffer;
             const destination = audioContext.createMediaStreamDestination();
             source.connect(destination);
 
+            // Create an Opus MediaRecorder
             const mediaRecorder = new OpusMediaRecorder(destination.stream, {
                 mimeType: 'audio/ogg',
                 audioBitsPerSecond: 16000,
@@ -503,7 +506,7 @@ export default function InteractiveAvatar() {
                 }
             };
 
-            return new Promise<void>((resolve, reject) => {
+            return new Promise((resolve, reject) => {
                 mediaRecorder.onstop = async () => {
                     const audioBlob = new Blob(chunks, { type: 'audio/ogg' });
                     
@@ -560,6 +563,8 @@ export default function InteractiveAvatar() {
 
     interface AudioResponse {
         text?: string;
+        audioDataSize: number;
+        audioData: string;
         error?: string;
         details?: string;
     }
