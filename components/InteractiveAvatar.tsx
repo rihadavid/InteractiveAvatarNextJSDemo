@@ -439,56 +439,65 @@ export default function InteractiveAvatar() {
         console.log(`Downloaded ${filename}`);
     };
 
-    // Helper function to convert Float32Array to WebM
-    const float32ArrayToWebM = (samples: Float32Array, sampleRate: number): Promise<Blob> => {
-        return new Promise((resolve) => {
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
-            audioBuffer.getChannelData(0).set(samples);
+    // Helper function to convert Float32Array to Ogg Opus
+    function float32ArrayToOggOpus(samples: Float32Array, sampleRate: number): Promise<Blob> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
+                audioBuffer.getChannelData(0).set(samples);
 
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
 
-            const destination = audioContext.createMediaStreamDestination();
-            source.connect(destination);
+                const destination = audioContext.createMediaStreamDestination();
+                source.connect(destination);
 
-            const mediaRecorder = new MediaRecorder(destination.stream, {mimeType: 'audio/webm;codecs=opus'});
-            const chunks: Blob[] = [];
+                const options = {
+                    mimeType: 'audio/ogg; codecs=opus',
+                    audioBitsPerSecond: 16000,
+                    encoderWorkerFactory: OpusMediaRecorder.WorkerFactory,
+                };
 
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    chunks.push(event.data);
-                }
-            };
+                const mediaRecorder = new OpusMediaRecorder(destination.stream, options);
+                const chunks: Blob[] = [];
 
-            mediaRecorder.onstop = () => {
-                const webmBlob = new Blob(chunks, {type: 'audio/webm'});
-                resolve(webmBlob);
-            };
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        chunks.push(event.data);
+                    }
+                };
 
-            source.start(0);
-            mediaRecorder.start();
+                mediaRecorder.onstop = () => {
+                    const oggBlob = new Blob(chunks, {type: 'audio/ogg; codecs=opus'});
+                    resolve(oggBlob);
+                };
 
-            setTimeout(() => {
+                mediaRecorder.start();
+                source.start();
+
+                // Stop immediately since we've already buffered the data
                 mediaRecorder.stop();
                 source.stop();
-            }, (samples.length / sampleRate) * 1000);
+            } catch (error) {
+                reject(error);
+            }
         });
-    };
-
+    }
 
     // Usage in sendAudioForTranscription
     const sendAudioForTranscription = async (audio: Float32Array) => {
         try {
-            console.log("will call float32ArrayToWebM");
-            const blob = await float32ArrayToWebM(audio, 16000);
+            // Convert Float32Array to Ogg Opus Blob
+            const oggBlob = await float32ArrayToOggOpus(audio, 16000);
 
+            // Create FormData and append the Ogg Opus file and language
             const formData = new FormData();
-            formData.append('file', blob, 'audio.webm');
+            formData.append('file', oggBlob, 'audio.ogg');
             formData.append('language', language);
 
             // Send the audio to the server for transcription
-            console.log("Sending audio for transcription using language " + language);
+            console.log("Sending Ogg Opus audio for transcription using language " + language);
             const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
                 headers: {'Content-Type': 'multipart/form-data'},
             });
@@ -512,6 +521,13 @@ export default function InteractiveAvatar() {
         }
     };
 
+    interface AudioResponse {
+        text?: string;
+        audioDataSize: number;
+        audioData: string;
+        error?: string;
+        details?: string;
+    }
 
     const handleAudioResponse = (response: AudioResponse) => {
         if (response.audioData) {
@@ -538,14 +554,6 @@ export default function InteractiveAvatar() {
             console.log('No audio data received');
         }
     };
-
-    interface AudioResponse {
-        text?: string;
-        audioDataSize: number;
-        audioData: string;
-        error?: string;
-        details?: string;
-    }
 
     const [isOnnxReady, setIsOnnxReady] = useState(false);
 
