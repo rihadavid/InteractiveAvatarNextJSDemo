@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import formidable from 'formidable';
 import fs from 'fs';
+import type { AudioResponseFormat } from 'openai/resources/audio';
 
 export const config = {
     api: {
@@ -51,12 +52,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             let conf: {
                 file: any;
                 model: string;
-                response_format: string;
+                response_format: AudioResponseFormat;
                 language?: string;
             } = {
                 file: fs.createReadStream(file.filepath),
                 model: "whisper-1",
-                response_format: 'verbose_json'
+                response_format: 'verbose_json' as AudioResponseFormat
             };
 
             if (language && typeof language === 'string' && language.length > 0) {
