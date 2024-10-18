@@ -484,7 +484,7 @@ export default function InteractiveAvatar() {
         try {
             console.log("starting float32ArrayToWebM");
             // Convert Float32Array to WebM format
-            const blob = await float32ArrayToWebM(audio, 16000);
+            const blob = await float32ArrayToMP3Blob(audio, 16000);
                 console.log("finished float32ArrayToWebM");
 
             if (isUserTalking) return;
