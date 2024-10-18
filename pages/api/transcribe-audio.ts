@@ -28,19 +28,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             multiples: false,
         });
 
-        const [fields, files] = await new Promise<[formidable.Fields<string>, formidable.Files<string>]>((resolve, reject) => {
+        const [fields, files] = await new Promise<[formidable.Fields, formidable.Files]>((resolve, reject) => {
             form.parse(req, (err, fields, files) => {
                 if (err) reject(err);
                 else resolve([fields, files]);
             });
         });
 
-        const file = files.file?.[0];
-        if (!file) {
+        const file = files.file && 'filepath' in files.file ? files.file : null;
+        if (!file || Array.isArray(file)) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        const language = fields.language?.[0] || 'en';
+        const language = fields.language && typeof fields.language === 'string' ? fields.language : 'en';
 
         try {
             const transcription = await openai.audio.transcriptions.create({
