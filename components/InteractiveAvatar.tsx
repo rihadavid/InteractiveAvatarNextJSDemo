@@ -217,7 +217,7 @@ export default function InteractiveAvatar() {
 
             const res = await avatar.current.createStartAvatar({
                 quality: AvatarQuality.Low,
-                avatarName: 'josh_lite3_20230714',//avatarId,
+                avatarName: avatarId,
                 knowledgeId: knowledgeId, // Or use a custom `knowledgeBase`.
                 voice: {
                     rate: 1.5, // 0.5 ~ 1.5
@@ -611,6 +611,22 @@ export default function InteractiveAvatar() {
                     ) : !isLoadingSession ? (
                         <div className="h-full justify-center items-center flex flex-col gap-8 w-[500px] self-center">
                             <div className="flex flex-col gap-2 w-full">
+                                <Select
+                                    placeholder="Select one from these example avatars"
+                                    size="md"
+                                    onChange={(e) => {
+                                        setAvatarId(e.target.value);
+                                    }}
+                                >
+                                    {AVATARS.map((avatar) => (
+                                        <SelectItem
+                                            key={avatar.avatar_id}
+                                            textValue={avatar.avatar_id}
+                                        >
+                                            {avatar.name}
+                                        </SelectItem>
+                                    ))}
+                                </Select>
                                 <Select
                                     label="Select language"
                                     placeholder="Select language"
