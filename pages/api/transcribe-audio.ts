@@ -10,6 +10,10 @@ export const config = {
     },
 };
 
+interface FormidableFile extends formidable.File {
+    filepath: string;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -35,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         });
 
-        const file = files.file && 'filepath' in files.file ? files.file : null;
+        const file = files.file as FormidableFile | FormidableFile[] | undefined;
         if (!file || Array.isArray(file)) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
