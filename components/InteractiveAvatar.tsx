@@ -455,7 +455,7 @@ export default function InteractiveAvatar() {
             if (isUserTalking) return;
 
             // Send the audio to the server for transcription
-                console.log("sending for transcription");
+                console.log("sending for transcription using language " + language);
             const response = await axios.post<AudioResponse>('/api/transcribe-audio', formData, {
                 headers: {'Content-Type': 'multipart/form-data'},
             });
