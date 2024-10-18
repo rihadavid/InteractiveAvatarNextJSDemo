@@ -51,7 +51,6 @@ export default function InteractiveAvatar() {
     const [debug, setDebug] = useState<string>();
     const [knowledgeId, setKnowledgeId] = useState<string>("");
     const [avatarId, setAvatarId] = useState<string>("");
-    const [language, setLanguage] = useState<string>();
 
     const [data, setData] = useState<StartAvatarResponse>();
     const [text, setText] = useState<string>("");
@@ -572,7 +571,7 @@ export default function InteractiveAvatar() {
                                     label="Select language"
                                     placeholder="Select language"
                                     className="max-w-xs"
-                                    selectedKeys={[language]}
+                                    selectedKeys={languageRef.current ? [languageRef.current] : []}
                                     onChange={(e) => {
                                         console.log("Language changed to:", e.target.value);
                                         languageRef.current = e.target.value;
